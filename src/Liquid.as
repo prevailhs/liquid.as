@@ -77,6 +77,46 @@ package {
       }
       return new RegExp(regExpString);
     }
+
+    // TODO Belongs on String
+    public static function scan(str:String, regExpOrString:*):Array {
+      var regString:String = (regExpOrString is RegExp) ? (regExpOrString as RegExp).source : regExpOrString;
+      var globalRegExp:RegExp = new RegExp(regString, "g");
+
+      var results:Array = [];
+      var result:Object = globalRegExp.exec(str);
+      while (result != null) {
+        results.push(result[result.length - 1]);
+        result = globalRegExp.exec(str);
+      }
+
+      return results;
+    }
+
+    // TODO Belongs on String
+    private static const Trim:RegExp = /(\A\s+|\s+\Z)/g;
+    public static function trim(str:String):String {
+      return str.replace(Liquid.Trim, '');
+    }
+
+    // TODO Belongs on Array
+    public static function flatten(arr:Array):Array {
+      var flattened:Array = [];
+      for each (var item:* in arr) {
+        if (item is Array) {
+          flattened.push.apply(flattened, flatten(item));
+        } else {
+          flattened.push(item);
+        }
+      }
+      return flattened;
+    }
   }
+
+  // TODO Would like to do something like this for all these helper functions
+//  String.prototype.scan = function(pattern:*):Array {
+//      var patternString:String = (pattern is RegExp) ? (pattern as RegExp).source : pattern;
+//      return this.match(new RegExp(patternString, "g"));
+//  }
 }
 
