@@ -1,49 +1,83 @@
-require 'test_helper'
+package liquid  {
 
-class RegexpTest < Test::Unit::TestCase
-  include Liquid
+  import asunit.asserts.*;
+  import asunit.framework.IAsync;
+  import flash.display.Sprite;
 
-  def test_empty
-    assert_equal [], ''.scan(QuotedFragment)
-  end
+  import support.phs.asserts.*;
 
-  def test_quote
-    assert_equal ['"arg 1"'], '"arg 1"'.scan(QuotedFragment)
-  end
+  public class RegExpTest {
 
-  def test_words
-    assert_equal ['arg1', 'arg2'], 'arg1 arg2'.scan(QuotedFragment)
-  end
+    [Inject]
+    public var async:IAsync;
 
-  def test_tags
-    assert_equal ['<tr>', '</tr>'], '<tr> </tr>'.scan(QuotedFragment)
-    assert_equal ['<tr></tr>'], '<tr></tr>'.scan(QuotedFragment)
-    assert_equal ['<style', 'class="hello">', '</style>'], %|<style class="hello">' </style>|.scan(QuotedFragment)
-  end
+    [Inject]
+    public var context:Sprite;
 
-  def test_quoted_words
-    assert_equal ['arg1', 'arg2', '"arg 3"'], 'arg1 arg2 "arg 3"'.scan(QuotedFragment)
-  end
 
-  def test_quoted_words
-    assert_equal ['arg1', 'arg2', "'arg 3'"], 'arg1 arg2 \'arg 3\''.scan(QuotedFragment)
-  end
+    [Before]
+    public function setUp():void {
+    }
 
-  def test_quoted_words_in_the_middle
-    assert_equal ['arg1', 'arg2', '"arg 3"', 'arg4'], 'arg1 arg2 "arg 3" arg4   '.scan(QuotedFragment)
-  end
+    [After]
+    public function tearDown():void {
+    }
 
-  def test_variable_parser
-    assert_equal ['var'],                               'var'.scan(VariableParser)
-    assert_equal ['var', 'method'],                     'var.method'.scan(VariableParser)
-    assert_equal ['var', '[method]'],                   'var[method]'.scan(VariableParser)
-    assert_equal ['var', '[method]', '[0]'],            'var[method][0]'.scan(VariableParser)
-    assert_equal ['var', '["method"]', '[0]'],          'var["method"][0]'.scan(VariableParser)
-    assert_equal ['var', '[method]', '[0]', 'method'],  'var[method][0].method'.scan(VariableParser)
-  end
 
-  def test_literal_shorthand_regexp
-    assert_equal [["{% if 'gnomeslab' contains 'liquid' %}yes{% endif %}"]],
-    "{{{ {% if 'gnomeslab' contains 'liquid' %}yes{% endif %} }}}".scan(LiteralShorthand)
-  end
-end # RegexpTest
+    [Test]
+    public function shouldTestEmpty():void {
+      assertEqualsArrays([], Liquid.scan('', Liquid.QuotedFragment));
+    }
+
+    [Test]
+    public function shouldTestQuote():void {
+      assertEqualsArrays(['"arg 1"'], Liquid.scan('"arg 1"', Liquid.QuotedFragment));
+    }
+
+    [Test]
+    public function shouldTestWords():void {
+      assertEqualsArrays(['arg1', 'arg2'], Liquid.scan('arg1 arg2', Liquid.QuotedFragment));
+    }
+
+    [Test]
+    public function shouldTestTags():void {
+      assertEqualsArrays(['<tr>', '</tr>'], Liquid.scan('<tr> </tr>', Liquid.QuotedFragment));
+      assertEqualsArrays(['<tr></tr>'], Liquid.scan('<tr></tr>', Liquid.QuotedFragment));
+      assertEqualsArrays(['<style', 'class="hello">', '</style>'], Liquid.scan('<style class="hello">\' </style>', Liquid.QuotedFragment));
+    }
+
+    [Test]
+    public function shouldTestQuotedWords():void {
+      assertEqualsArrays(['arg1', 'arg2', '"arg 3"'], Liquid.scan('arg1 arg2 "arg 3"', Liquid.QuotedFragment));
+    }
+
+    [Test]
+    public function shouldTestQuotedWords2():void {
+      assertEqualsArrays(['arg1', 'arg2', "'arg 3'"], Liquid.scan('arg1 arg2 \'arg 3\'', Liquid.QuotedFragment));
+    }
+
+    [Test]
+    public function shouldTestQuotedWordsInTheMiddle():void {
+      assertEqualsArrays(['arg1', 'arg2', '"arg 3"', 'arg4'], Liquid.scan('arg1 arg2 "arg 3" arg4   ', Liquid.QuotedFragment));
+    }
+
+    [Test]
+    public function shouldTestVariableParser():void {
+      assertEqualsArrays(['var'],                               Liquid.scan('var', Liquid.VariableParser));
+      assertEqualsArrays(['var', 'method'],                     Liquid.scan('var.method', Liquid.VariableParser));
+      assertEqualsArrays(['var', '[method]'],                   Liquid.scan('var[method]', Liquid.VariableParser));
+      assertEqualsArrays(['var', '[method]', '[0]'],            Liquid.scan('var[method][0]', Liquid.VariableParser));
+      assertEqualsArrays(['var', '["method"]', '[0]'],          Liquid.scan('var["method"][0]', Liquid.VariableParser));
+      assertEqualsArrays(['var', '[method]', '[0]', 'method'],  Liquid.scan('var[method][0].method', Liquid.VariableParser));
+    }
+
+    // Not in ruby liquid source anymore, why not?
+    //[Test]
+    //public function shouldTestLiteralShorthandRegExp():void {
+      //trace('expected: [' + "{% if 'gnomeslab' contains 'liquid' %}yes{% endif %}" + ']');
+      //trace('actual  : [' + Liquid.scan("{{{ {% if 'gnomeslab' contains 'liquid' %}yes{% endif %} }}}", Liquid.LiteralShorthand)[0] + ']');
+      //assertEqualsNestedArrays([["{% if 'gnomeslab' contains 'liquid' %}yes{% endif %}"]],
+        //Liquid.scan("{{{ {% if 'gnomeslab' contains 'liquid' %}yes{% endif %} }}}", Liquid.LiteralShorthand));
+    //}
+  }
+}
