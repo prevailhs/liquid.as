@@ -1,26 +1,32 @@
-module Liquid
+package liquid {
+  import flash.utils.getQualifiedClassName;
 
-  class Tag
+  public class Tag {
+    protected var _tagName:String;
+    private var _markup:String;
+    protected var _nodelist:Array;
 
-    attr_accessor :nodelist
+    public function get nodelist():Array { return _nodelist; }
 
-    def initialize(tag_name, markup, tokens)
-      @tag_name   = tag_name
-      @markup     = markup
-      parse(tokens)
-    end
+    // NOTE Added in defaults so that we can have empty constructor for sub-classes
+    public function Tag(tagName:String=null, markup:String=null, tokens:Array=null) {
+      _tagName = tagName;
+      _markup = markup;
+      if (tokens) parse(tokens);
+    }
 
-    def parse(tokens)
-    end
+    public function parse(tokens:Array):void {
+    }
 
-    def name
-      self.class.name.downcase
-    end
+    public function get name():String {
+      // FIXME Downcase this
+      return getQualifiedClassName(this);
+    }
 
-    def render(context)
-      ''
-    end
-
-  end # Tag
-
-end # Tag
+    // TODO Switch to type of Context (I think) when implemented)
+    // TODO What return type?
+    public function render(context:*):String {
+      return '';
+    }
+  }
+}

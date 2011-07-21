@@ -1,17 +1,19 @@
-module Liquid
-  class Document < Block
-    # we don't need markup to open this block
-    def initialize(tokens)
-      parse(tokens)
-    end
+package liquid {
 
-    # There isn't a real delimter
-    def block_delimiter
-      []
-    end
+  public class Document extends Block {
 
-    # Document blocks don't need to be terminated since they are not actually opened
-    def assert_missing_delimitation!
-    end
-  end
-end
+    // we don't need markup to open this block
+    public function Document(tokens:Array) {
+      parse(tokens);
+    }
+
+    // There isn't a real delimter
+    override public function get blockDelimiter():* {
+      return [];
+    }
+
+    // Document blocks don't need to be terminated since they are not actually opened
+    override protected function assertMissingDelimitation():void {
+    }
+  }
+}

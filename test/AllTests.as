@@ -14,7 +14,7 @@ package {
     //import liquid.SecurityTest;
     //import liquid.CaptureTest;
     import liquid.VariableTest;
-    //import liquid.BlockTest;
+    import liquid.BlockTest;
     //import liquid.FileSystemTest;
     //import liquid.IncludeTagTest;
     //import liquid.ErrorHandlingTest;
@@ -42,7 +42,7 @@ package {
         //public var liquid_SecurityTest:liquid.SecurityTest;
         //public var liquid_CaptureTest:liquid.CaptureTest;
         public var liquid_VariableTest:liquid.VariableTest;
-        //public var liquid_BlockTest:liquid.BlockTest;
+        public var liquid_BlockTest:liquid.BlockTest;
         //public var liquid_FileSystemTest:liquid.FileSystemTest;
         //public var liquid_IncludeTagTest:liquid.IncludeTagTest;
         //public var liquid_ErrorHandlingTest:liquid.ErrorHandlingTest;

@@ -1,4 +1,5 @@
 package support.phs.asserts {
+  import asunit.errors.AssertionFailedError;
   import asunit.framework.Assert;
 
   import flash.utils.getQualifiedClassName;
@@ -17,6 +18,21 @@ package support.phs.asserts {
     public function Assert() {
     }
 
+    /**
+     * Asserts that the provided block does not throw an exception.
+     *
+     * @param	block
+     */
+    static public function assertDoesNotThrow(block:Function):void {
+      try {
+        block.call();
+      } catch (e:Error) {
+        // We throw AssertionFailedError so that our test shows F instead of E,
+        // but we still need the stack trace for the error to debug.
+        // TODO The formatting of the stack traces together doesn't look very good.
+        throw new AssertionFailedError("expected no error, got " + getQualifiedClassName(e) + "\n" + e.getStackTrace());
+      }
+    }
 
     /**
      * Asserts that two arrays have the same length and contain the same
@@ -69,6 +85,29 @@ package support.phs.asserts {
         if (expectedIsArray && actualIsArray) {
           assertEqualsNestedArrays(expected[i], actual[i]);
         }
+      }
+    }
+
+    /**
+     * Asserts that an object is a certain class typpe.
+     */
+    static public function assertEqualsClass(...args:Array):void {
+      var message:String;
+      var expected:Array;
+      var actual:Array;
+
+      if(args.length == 2) {
+        message = "";
+        expected = args[0];
+        actual = args[1];
+      }
+      else if(args.length == 3) {
+        message = args[0];
+        expected = args[1];
+        actual = args[2];
+      }
+      else {
+        throw new IllegalOperationError("Invalid argument count");
       }
     }
 

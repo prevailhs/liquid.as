@@ -23,6 +23,8 @@
 
 package {
   import flash.display.Sprite;
+  import flash.utils.getDefinitionByName;
+  import flash.utils.getQualifiedClassName;
 
   public class Liquid extends Sprite {
     public static const FilterSeparator:RegExp            = /\|/;
@@ -110,6 +112,11 @@ package {
         }
       }
       return flattened;
+    }
+
+    // TODO Belongs where?
+    public static function getClass(obj:Object):Class {
+      return Class(getDefinitionByName(getQualifiedClassName(obj)));
     }
   }
 

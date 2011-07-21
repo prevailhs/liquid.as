@@ -1,58 +1,91 @@
-require 'test_helper'
+package liquid  {
 
-class VariableTest < Test::Unit::TestCase
-  include Liquid
+  import asunit.asserts.*;
+  import asunit.framework.IAsync;
+  import flash.display.Sprite;
 
-  def test_blankspace
-    template = Liquid::Template.parse("  ")
-    assert_equal ["  "], template.root.nodelist
-  end
+  import support.phs.asserts.*;
 
-  def test_variable_beginning
-    template = Liquid::Template.parse("{{funk}}  ")
-    assert_equal 2, template.root.nodelist.size
-    assert_equal Variable, template.root.nodelist[0].class
-    assert_equal String, template.root.nodelist[1].class
-  end
+  public class BlockTest {
 
-  def test_variable_end
-    template = Liquid::Template.parse("  {{funk}}")
-    assert_equal 2, template.root.nodelist.size
-    assert_equal String, template.root.nodelist[0].class
-    assert_equal Variable, template.root.nodelist[1].class
-  end
+    [Inject]
+    public var async:IAsync;
 
-  def test_variable_middle
-    template = Liquid::Template.parse("  {{funk}}  ")
-    assert_equal 3, template.root.nodelist.size
-    assert_equal String, template.root.nodelist[0].class
-    assert_equal Variable, template.root.nodelist[1].class
-    assert_equal String, template.root.nodelist[2].class
-  end
+    [Inject]
+    public var context:Sprite;
 
-  def test_variable_many_embedded_fragments
-    template = Liquid::Template.parse("  {{funk}} {{so}} {{brother}} ")
-    assert_equal 7, template.root.nodelist.size
-    assert_equal [String, Variable, String, Variable, String, Variable, String],
-                 block_types(template.root.nodelist)
-  end
+    //private var instance:Block;
 
-  def test_with_block
-    template = Liquid::Template.parse("  {% comment %} {% endcomment %} ")
-    assert_equal [String, Comment, String], block_types(template.root.nodelist)
-    assert_equal 3, template.root.nodelist.size
-  end
+    [Before]
+    public function setUp():void {
+      //instance = new Block();
+    }
 
-  def test_with_custom_tag
-    Liquid::Template.register_tag("testtag", Block)
+    [After]
+    public function tearDown():void {
+      //instance = null;
+    }
 
-    assert_nothing_thrown do
-      template = Liquid::Template.parse( "{% testtag %} {% endtesttag %}")
-    end
-  end
+    [Test]
+    public function shouldTestBlankspace():void {
+      var template:Template = Template.parse("  ");
+      assertEqualsNestedArrays(["  "], template.root.nodelist);
+    }
 
-  private
-    def block_types(nodelist)
-      nodelist.collect { |node| node.class }
-    end
-end # VariableTest
+    [Test]
+    public function shouldTestVariableBeginning():void {
+      var template:Template = Template.parse("{{funk}}  ");
+      assertEquals(2, template.root.nodelist.length);
+      assertEquals(Variable, Liquid.getClass(template.root.nodelist[0]));
+      assertEquals(String, Liquid.getClass(template.root.nodelist[1]));
+    }
+
+    [Test]
+    public function shouldTestVariableEnd():void {
+      var template:Template = Template.parse("  {{funk}}");
+      assertEquals(2, template.root.nodelist.length);
+      assertEquals(String, Liquid.getClass(template.root.nodelist[0]));
+      assertEquals(Variable, Liquid.getClass(template.root.nodelist[1]));
+    }
+
+    [Test]
+    public function shouldTestVariableMiddle():void {
+      var template:Template = Template.parse("  {{funk}}  ");
+      assertEquals(3, template.root.nodelist.length);
+      assertEquals(String, Liquid.getClass(template.root.nodelist[0]));
+      assertEquals(Variable, Liquid.getClass(template.root.nodelist[1]));
+      assertEquals(String, Liquid.getClass(template.root.nodelist[2]));
+    }
+
+    [Test]
+    public function shouldTestVariableManyEmbeddedFragments():void {
+      var template:Template = Template.parse("  {{funk}} {{so}} {{brother}} ");
+      assertEquals(7, template.root.nodelist.length);
+      assertEqualsNestedArrays([String, Variable, String, Variable, String, Variable, String],
+        blockTypes(template.root.nodelist));
+    }
+
+    // TODO Enable when Comment is supported
+    //[Test]
+    //public function shouldTestWithBlock():void {
+      //var template:Template = Template.parse("  {% comment %} {% endcomment %} ");
+      //assertEqualsNestedArrays([String, Comment, String], blockTypes(template.root.nodelist));
+      //assertEquals(3, template.root.nodelist.length);
+    //}
+
+    // TODO Enable when registerTag is supported
+    //[Test]
+    //public function shouldTestWithCustomTag():void {
+      //Template.registerTag("testtag", Class(Block));
+      //assertDoesNotThrow(function():void {
+        //var template:Template = Template.parse("{% testtag %} {% endtesttag %}");
+      //});
+    //}
+
+    private function blockTypes(nodelist:Array):Array {
+      return nodelist.map(function(item:*, index:int, array:Array):Object {
+        return Liquid.getClass(item);
+      });
+    }
+  }
+}
