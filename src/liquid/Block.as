@@ -91,14 +91,12 @@ package liquid {
         //return Variable.new(content.first)
       //end
       var vars:Array = Liquid.scan(token, ContentOfVariable);
-      if (vars.length == 1) return new Variable(vars[0]);
+      if (vars.length == 1) return new Variable(Liquid.first(vars));
 
       throw new liquid.errors.SyntaxError("Variable '" + token + "' was not properly terminated with regexp: " + Liquid.VariableEnd.source);
     }
 
-    // TODO Use Context here when implemented
-    // TODO Check return type
-    override public function render(context:*):String {
+    override public function render(context:Context):* {
       return renderAll(_nodelist, context);
     }
 
@@ -107,9 +105,7 @@ package liquid {
       throw new liquid.errors.SyntaxError(blockName +" tag was never closed");
     }
 
-    // TODO Use Context here when implemented
-    // TODO Check return type
-    protected function renderAll(list:Array, context:*):String {
+    protected function renderAll(list:Array, context:Context):* {
       return list.map(function(token:*, index:int, array:Array):Object {
         try {
           return ('render' in token) ? token.render(context) : token;

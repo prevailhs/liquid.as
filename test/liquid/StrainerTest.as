@@ -1,25 +1,57 @@
-require 'test_helper'
+package liquid  {
 
-class StrainerTest < Test::Unit::TestCase
-  include Liquid
+  import asunit.asserts.*;
+  import asunit.framework.IAsync;
+  import flash.display.Sprite;
 
-  def test_strainer
-    strainer = Strainer.create(nil)
-    assert_equal false, strainer.respond_to?('__test__')
-    assert_equal false, strainer.respond_to?('test')
-    assert_equal false, strainer.respond_to?('instance_eval')
-    assert_equal false, strainer.respond_to?('__send__')
-    assert_equal true, strainer.respond_to?('size') # from the standard lib
-  end
+  import support.phs.asserts.*;
 
-  def test_should_respond_to_two_parameters
-    strainer = Strainer.create(nil)
-    assert_equal true, strainer.respond_to?('size', false)
-  end
+  public class StrainerTest {
 
-  # Asserts that Object#respond_to_missing? is not being undefined in Ruby versions where it has been implemented
-  # Currently this method is only present in Ruby v1.9.2, or higher
-  def test_object_respond_to_missing
-    assert_equal Object.respond_to?(:respond_to_missing?), Strainer.create(nil).respond_to?(:respond_to_missing?)
-  end
-end # StrainerTest
+    [Inject]
+    public var async:IAsync;
+
+    [Inject]
+    public var context:Sprite;
+
+    //private var instance:Strainer;
+
+    [Before]
+    public function setUp():void {
+      //instance = new Strainer();
+    }
+
+    [After]
+    public function tearDown():void {
+      //instance = null;
+    }
+
+    [Test]
+    public function shouldTestStrainer():void {
+      var strainer:Strainer = Strainer.create(null);
+      assertEquals(false, strainer.respondTo('__test__'));
+      assertEquals(false, strainer.respondTo('test'));
+      assertEquals(false, strainer.respondTo('instance_eval'));
+      assertEquals(false, strainer.respondTo('__send__'));
+      // FIXME Size not present on Object for AS3
+      //assertEquals(true, strainer.respondTo('size')); // from the standard 
+      //lib
+    }
+
+    [Test]
+    public function shouldTestShouldRespondToTwoParameters():void {
+      var strainer:Strainer = Strainer.create(null);
+      // FIXME Size not present on Object for AS3
+      //assertEquals(true, strainer.respondTo('size', false));
+    }
+
+    // Asserts that Object#respondTo_missing? is not being undefined in Ruby 
+    // versions where it has been implemented
+    // Currently this method is only present in Ruby v1.9.2, or higher
+    // TODO Decide if we need to implement
+//    [Test]
+//    public function shouldTestObjectRespondToMissing():void {
+//      assertEquals(Object.respondTo(:respondTo_missing?), Strainer.create(null).respondTo(:respondTo_missing?)
+//    }
+  }
+}

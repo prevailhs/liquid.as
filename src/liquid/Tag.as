@@ -23,9 +23,7 @@ package liquid {
       return getQualifiedClassName(this);
     }
 
-    // TODO Switch to type of Context (I think) when implemented)
-    // TODO What return type?
-    public function render(context:*):String {
+    public function render(context:Context):* {
       return '';
     }
   }

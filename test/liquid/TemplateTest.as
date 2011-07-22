@@ -1,74 +1,120 @@
-require 'test_helper'
+package liquid  {
 
-class TemplateTest < Test::Unit::TestCase
-  include Liquid
+  import asunit.asserts.*;
+  import asunit.framework.IAsync;
+  import flash.display.Sprite;
 
-  def test_tokenize_strings
-    assert_equal [' '], Template.new.send(:tokenize, ' ')
-    assert_equal ['hello world'], Template.new.send(:tokenize, 'hello world')
-  end
+  import support.phs.asserts.*;
 
-  def test_tokenize_variables
-    assert_equal ['{{funk}}'], Template.new.send(:tokenize, '{{funk}}')
-    assert_equal [' ', '{{funk}}', ' '], Template.new.send(:tokenize, ' {{funk}} ')
-    assert_equal [' ', '{{funk}}', ' ', '{{so}}', ' ', '{{brother}}', ' '], Template.new.send(:tokenize, ' {{funk}} {{so}} {{brother}} ')
-    assert_equal [' ', '{{  funk  }}', ' '], Template.new.send(:tokenize, ' {{  funk  }} ')
-  end
+  public class TemplateTest {
 
-  def test_tokenize_blocks
-    assert_equal ['{%comment%}'], Template.new.send(:tokenize, '{%comment%}')
-    assert_equal [' ', '{%comment%}', ' '], Template.new.send(:tokenize, ' {%comment%} ')
+    [Inject]
+    public var async:IAsync;
 
-    assert_equal [' ', '{%comment%}', ' ', '{%endcomment%}', ' '], Template.new.send(:tokenize, ' {%comment%} {%endcomment%} ')
-    assert_equal ['  ', '{% comment %}', ' ', '{% endcomment %}', ' '], Template.new.send(:tokenize, "  {% comment %} {% endcomment %} ")
-  end
+    [Inject]
+    public var context:Sprite;
 
-  def test_instance_assigns_persist_on_same_template_object_between_parses
-    t = Template.new
-    assert_equal 'from instance assigns', t.parse("{% assign foo = 'from instance assigns' %}{{ foo }}").render
-    assert_equal 'from instance assigns', t.parse("{{ foo }}").render
-  end
+    //private var instance:Template;
 
-  def test_instance_assigns_persist_on_same_template_parsing_between_renders
-    t = Template.new.parse("{{ foo }}{% assign foo = 'foo' %}{{ foo }}")
-    assert_equal 'foo', t.render
-    assert_equal 'foofoo', t.render
-  end
+    [Before]
+    public function setUp():void {
+      //instance = new Template();
+    }
 
-  def test_custom_assigns_do_not_persist_on_same_template
-    t = Template.new
-    assert_equal 'from custom assigns', t.parse("{{ foo }}").render('foo' => 'from custom assigns')
-    assert_equal '', t.parse("{{ foo }}").render
-  end
+    [After]
+    public function tearDown():void {
+      //instance = null;
+    }
 
-  def test_custom_assigns_squash_instance_assigns
-    t = Template.new
-    assert_equal 'from instance assigns', t.parse("{% assign foo = 'from instance assigns' %}{{ foo }}").render
-    assert_equal 'from custom assigns', t.parse("{{ foo }}").render('foo' => 'from custom assigns')
-  end
+    [Test]
+    public function shouldTestVariable():void {
+      var v:Variable = new Variable('hello');
+      assertEquals('hello', v.name);
+    }
 
-  def test_persistent_assigns_squash_instance_assigns
-    t = Template.new
-    assert_equal 'from instance assigns', t.parse("{% assign foo = 'from instance assigns' %}{{ foo }}").render
-    t.assigns['foo'] = 'from persistent assigns'
-    assert_equal 'from persistent assigns', t.parse("{{ foo }}").render
-  end
+    [Test]
+    public function shouldTestTokenizeStrings():void {
+      assertEqualsNestedArrays([' '], new Template().tokenize(' '));
+      assertEqualsNestedArrays(['hello world'], new Template().tokenize('hello world'));
+    }
 
-  def test_lambda_is_called_once_from_persistent_assigns_over_multiple_parses_and_renders
-    t = Template.new
-    t.assigns['number'] = lambda { @global ||= 0; @global += 1 }
-    assert_equal '1', t.parse("{{number}}").render
-    assert_equal '1', t.parse("{{number}}").render
-    assert_equal '1', t.render
-    @global = nil
-  end
+    [Test]
+    public function shouldTestTokenizeVariables():void {
+      assertEqualsNestedArrays(['{{funk}}'], new Template().tokenize('{{funk}}'));
+      assertEqualsNestedArrays([' ', '{{funk}}', ' '], new Template().tokenize(' {{funk}} '));
+      assertEqualsNestedArrays([' ', '{{funk}}', ' ', '{{so}}', ' ', '{{brother}}', ' '], new Template().tokenize(' {{funk}} {{so}} {{brother}} '));
+      assertEqualsNestedArrays([' ', '{{  funk  }}', ' '], new Template().tokenize(' {{  funk  }} '));
+    }
 
-  def test_lambda_is_called_once_from_custom_assigns_over_multiple_parses_and_renders
-    t = Template.new
-    assigns = {'number' => lambda { @global ||= 0; @global += 1 }}
-    assert_equal '1', t.parse("{{number}}").render(assigns)
-    assert_equal '1', t.parse("{{number}}").render(assigns)
-    assert_equal '1', t.render(assigns)
-    @global = nil
-  end
-end # TemplateTest
+    [Test]
+    public function shouldTestTokenizeBlocks():void {
+      assertEqualsNestedArrays(['{%comment%}'], new Template().tokenize('{%comment%}'));
+      assertEqualsNestedArrays([' ', '{%comment%}', ' '], new Template().tokenize(' {%comment%} '));
+
+      assertEqualsNestedArrays([' ', '{%comment%}', ' ', '{%endcomment%}', ' '], new Template().tokenize(' {%comment%} {%endcomment%} '));
+      assertEqualsNestedArrays(['  ', '{% comment %}', ' ', '{% endcomment %}', ' '], new Template().tokenize("  {% comment %} {% endcomment %} "));
+    }
+
+    // TODO Enable when assign is implemented
+    //[Test]
+    //public function shouldTestInstanceAssignsPersistOnSameTemplateObjectBetweenParses():void {
+      //var t:Template = new Template();
+      //assertEquals('from instance assigns', t.parse("{% assign foo = 'from instance assigns' %}{{ foo }}").render());
+      //assertEquals('from instance assigns', t.parse("{{ foo }}").render());
+    //}
+
+    // TODO Enable when assign is implemented
+    //[Test]
+    //public function shouldTestInstanceAssignsPersistOnSameTemplateParsingBetweenRenders():void {
+      //var t:Template = new Template().parse("{{ foo }}{% assign foo = 'foo' %}{{ foo }}");
+      //assertEquals('foo', t.render());
+      //assertEquals('foofoo', t.render());
+    //}
+
+    [Test]
+    public function shouldTestCustomAssignsDoNotPersistOnSameTemplate():void {
+      var t:Template = new Template();
+      assertEquals('from custom assigns', t.parse("{{ foo }}").render({'foo': 'from custom assigns'}));
+      assertEquals('', t.parse("{{ foo }}").render());
+    }
+
+    // TODO Enable when assign is implemented
+    //[Test]
+    //public function shouldTestCustomAssignsSquashInstanceAssigns():void {
+      //var t:Template = new Template();
+      //assertEquals('from instance assigns', t.parse("{% assign foo = 'from instance assigns' %}{{ foo }}").render());
+      //assertEquals('from custom assigns', t.parse("{{ foo }}").render({'foo': 'from custom assigns'}));
+    //}
+
+    // TODO Enable when assign is implemented
+    //[Test]
+    //public function shouldTestPersistentAssignsSquashInstanceAssigns():void {
+      //var t:Template = new Template();
+      //assertEquals('from instance assigns', t.parse("{% assign foo = 'from instance assigns' %}{{ foo }}").render());
+      //t.assigns['foo'] = 'from persistent assigns';
+      //assertEquals('from persistent assigns', t.parse("{{ foo }}").render());
+    //}
+
+    [Test]
+    public function shouldTestLambdaIsCalledOnceFromPersistentAssignsOverMultipleParsesAndRenders():void {
+      var t:Template = new Template();
+      var global:int = 0;
+      t.assigns['number'] = function():* { return (global += 1); };
+      assertEquals('1', t.parse("{{number}}").render());
+      assertEquals('1', t.parse("{{number}}").render());
+      assertEquals('1', t.render());
+      global = 0;
+    }
+
+    [Test]
+    public function shouldTestLambaIsCalledOnceFromCustomAssignsOverMultipleParsesAndRenders():void {
+      var t:Template = new Template();
+      var global:int = 0;
+      var assigns:Object = {'number': function():* { return (global += 1); }};
+      assertEquals('1', t.parse("{{number}}").render(assigns));
+      assertEquals('1', t.parse("{{number}}").render(assigns));
+      assertEquals('1', t.render(assigns));
+      global = 0;
+    }
+  }
+}

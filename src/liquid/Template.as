@@ -1,4 +1,5 @@
 package liquid {
+  import liquid.errors.ArgumentError;
 
   /**
    * Templates are central to liquid.
@@ -16,6 +17,12 @@ package liquid {
    */
   public class Template {
     private var _root:Document;
+    private var _registers:Object = {};
+    private var _assigns:Object = {};
+    private var _instanceAssigns:Object = { };
+    private var _errors:Array = [];
+    private var _rethrowErrors:Boolean = false;
+
     // TODO Should this be a dictionary?
     private static var _tags:Object = { };
 
@@ -34,14 +41,17 @@ package liquid {
       tags[name] = klass;
     }
 
+    // TODO Should this be a dictionary?
     public static function get tags():Object { return _tags; }
 
-    //# Pass a module with filter methods which should be available
-      //# to all liquid views. Good for registering the standard library
-      //def register_filter(mod)
-        //Strainer.global_filter(mod)
-      //end
-//
+    /**
+     * Pass a module with filter methods which should be available
+     * to all liquid views. Good for registering the standard library
+     */
+    public static function registerFilter(mod:Object):void {
+      Strainer.globalFilter(mod);
+    }
+
     /**
      * creates a new <tt>Template</tt> object from liquid source code
      */
@@ -50,15 +60,12 @@ package liquid {
       template.parse(source);
       return template;
     }
-    //end
-//
+
 
     public function get root():Document { return _root; }
 
-    //# creates a new <tt>Template</tt> from an array of tokens. Use <tt>Template.parse</tt> instead
-    //def initialize
-    //end
-//
+    public function Template() {
+    }
 
     /**
      * Parse source code.
@@ -71,74 +78,70 @@ package liquid {
       return this;
     }
 
-    //def registers
-      //@registers ||= {}
-    //end
-//
-    //def assigns
-      //@assigns ||= {}
-    //end
-//
-    //def instance_assigns
-      //@instance_assigns ||= {}
-    //end
-//
-    //def errors
-      //@errors ||= []
-    //end
-//
-    //# Render takes a hash with local variables.
-    //#
-    //# if you use the same filters over and over again consider registering them globally
-    //# with <tt>Template.register_filter</tt>
-    //#
-    //# Following options can be passed:
-    //#
-    //#  * <tt>filters</tt> : array with local filters
-    //#  * <tt>registers</tt> : hash with register variables. Those can be accessed from
-    //#    filters and tags and might be useful to integrate liquid more with its host application
-    //#
-    //def render(*args)
-      //return '' if @root.nil?
-//
-      //context = case args.first
-      //when Liquid::Context
-        //args.shift
-      //when Hash
-        //Context.new([args.shift, assigns], instance_assigns, registers, @rethrow_errors)
-      //when nil
-        //Context.new(assigns, instance_assigns, registers, @rethrow_errors)
-      //else
-        //raise ArgumentError, "Expect Hash or Liquid::Context as parameter"
-      //end
-//
-      //case args.last
-      //when Hash
-        //options = args.pop
-//
-        //if options[:registers].is_a?(Hash)
-          //self.registers.merge!(options[:registers])
-        //end
-//
-        //if options[:filters]
-          //context.add_filters(options[:filters])
-        //end
-//
-      //when Module
-        //context.add_filters(args.pop)
-      //when Array
-        //context.add_filters(args.pop)
-      //end
-//
-      //begin
-        //# render the nodelist.
-        //# for performance reasons we get a array back here. join will make a string out of it
-        //@root.render(context).join
-      //ensure
-        //@errors = context.errors
-      //end
-    //end
-//
+    // TODO Should these be Dictionaries?
+    public function get registers():Object { return _registers; }
+    public function get assigns():Object { return _assigns; }
+    public function set assigns(value:Object):void { _assigns = value; }
+    public function get instanceAssigns():Object { return _instanceAssigns; }
+    public function get errors():Array { return _errors; }
+
+    /**
+     * Render takes a hash with local variables.
+     *
+     * if you use the same filters over and over again consider registering them globally
+     * with <tt>Template.register_filter</tt>
+     *
+     * Following options can be passed:
+     * @param filters     Array with local filters
+     * @param registers   Hash with register variables. Those can be accessed from
+     *                    filters and tags and might be useful to integrate liquid more with its host application
+     */
+    public function render(... args):* {
+      if (!_root) return '';
+
+      var context:Context;
+      var firstObj:* = Liquid.first(args);
+      if (firstObj is Context) {
+        context = args.shift();
+      } else if (firstObj is Object) { // TODO Should this be a Dictionary? Ruby object is a Hash
+        context = new Context([args.shift(), assigns], instanceAssigns, registers, _rethrowErrors);
+      } else if (!firstObj) { // null
+        context = new Context(assigns, instanceAssigns, registers, _rethrowErrors);
+      } else {
+        throw new liquid.errors.ArgumentError("Expect Hash or liquid.Context as parameter");
+      }
+
+      var lastObj:* = Liquid.last(args);
+      if (lastObj is Object) { // TODO Should this be a Dictionary? Ruby object is a Hash
+        // TODO Should this be a dictionary?
+        var options:Object = args.pop();
+
+        if (options['registers'] is Object) {
+          this.registers.mergeBang(options['registers']);
+        }
+
+        if (options['filters']) {
+          context.addFilters(options['filters']);
+        }
+
+        // TODO Is this okay to do this, seems like it always skips array, but
+        // does the same thing anyway?
+      } else if (lastObj is Object) {
+        context.addFilters(args.pop());
+      } else if (lastObj is Array) {
+        context.addFilters(args.pop());
+      }
+
+      try {
+        // render the nodelist.
+        // for performance reasons we get a array back here. join will make a string out of it
+        var result:* = _root.render(context);
+        return ('join' in result) ? result.join('') : result;
+      } finally {
+        _errors = context.errors;
+      }
+    }
+
     //def render!(*args)
       //@rethrow_errors = true; render(*args)
     //end
@@ -148,8 +151,10 @@ package liquid {
 
     /**
      * Uses the <tt>Liquid::TemplateParser</tt> regexp to tokenize the passed source
+     *
+     * NOTE This was private in ruby, but we make it public to test it.
      */
-    private function tokenize(source:*):Array {
+    public function tokenize(source:*):Array {
       // TODO Want to do this ruby:
       //source = source.source if source.respond_to?(:source)
       if ('source' in source) source = source.source();
@@ -158,6 +163,9 @@ package liquid {
 
       // removes the rogue empty element at the beginning of the array
       if (tokens.length > 0 && (tokens[0] == null || tokens[0] == '')) tokens.shift();
+      // TODO Why is this necessary for AS3?
+      // removes the rogue empty element at the end of the array
+      if (tokens.length > 0 && (tokens[tokens.length-1] == null || tokens[tokens.length-1] == '')) tokens.pop();
 
       return tokens;
     }

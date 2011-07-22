@@ -1,478 +1,534 @@
-require 'test_helper'
+package liquid  {
 
-class HundredCentes
-  def to_liquid
-    100
-  end
-end
+  import asunit.asserts.*;
+  import asunit.framework.IAsync;
+  import flash.display.Sprite;
 
-class CentsDrop < Liquid::Drop
-  def amount
-    HundredCentes.new
-  end
+  import support.phs.asserts.*;
 
-  def non_zero?
-    true
-  end
-end
+  import liquid.errors.ContextError;
 
-class ContextSensitiveDrop < Liquid::Drop
-  def test
-    @context['test']
-  end
-end
+  public class ContextTest {
 
-class Category < Liquid::Drop
-  attr_accessor :name
+    [Inject]
+    public var async:IAsync;
 
-  def initialize(name)
-    @name = name
-  end
+    [Inject]
+    public var context:Sprite;
 
-  def to_liquid
-    CategoryDrop.new(self)
-  end
-end
+    private var instance:Context;
 
-class CategoryDrop
-  attr_accessor :category, :context
-  def initialize(category)
-    @category = category
-  end
-end
-
-class CounterDrop < Liquid::Drop
-  def count
-    @count ||= 0
-    @count += 1
-  end
-end
-
-class ArrayLike
-  def fetch(index)
-  end
-
-  def [](index)
-    @counts ||= []
-    @counts[index] ||= 0
-    @counts[index] += 1
-  end
-
-  def to_liquid
-    self
-  end
-end
-
-class ContextTest < Test::Unit::TestCase
-  include Liquid
-
-  def setup
-    @context = Liquid::Context.new
-  end
-
-  def test_variables
-    @context['string'] = 'string'
-    assert_equal 'string', @context['string']
-
-    @context['num'] = 5
-    assert_equal 5, @context['num']
-
-    @context['time'] = Time.parse('2006-06-06 12:00:00')
-    assert_equal Time.parse('2006-06-06 12:00:00'), @context['time']
-
-    @context['date'] = Date.today
-    assert_equal Date.today, @context['date']
-
-    now = DateTime.now
-    @context['datetime'] = now
-    assert_equal now, @context['datetime']
-
-    @context['bool'] = true
-    assert_equal true, @context['bool']
-
-    @context['bool'] = false
-    assert_equal false, @context['bool']
-
-    @context['nil'] = nil
-    assert_equal nil, @context['nil']
-    assert_equal nil, @context['nil']
-  end
-
-  def test_variables_not_existing
-    assert_equal nil, @context['does_not_exist']
-  end
-
-  def test_scoping
-    assert_nothing_raised do
-      @context.push
-      @context.pop
-    end
-
-    assert_raise(Liquid::ContextError) do
-      @context.pop
-    end
-
-    assert_raise(Liquid::ContextError) do
-      @context.push
-      @context.pop
-      @context.pop
-    end
-  end
-
-  def test_length_query
-
-    @context['numbers'] = [1,2,3,4]
-
-    assert_equal 4, @context['numbers.size']
-
-    @context['numbers'] = {1 => 1,2 => 2,3 => 3,4 => 4}
-
-    assert_equal 4, @context['numbers.size']
-
-    @context['numbers'] = {1 => 1,2 => 2,3 => 3,4 => 4, 'size' => 1000}
-
-    assert_equal 1000, @context['numbers.size']
-
-  end
-
-  def test_hyphenated_variable
-
-    @context['oh-my'] = 'godz'
-    assert_equal 'godz', @context['oh-my']
-
-  end
-
-  def test_add_filter
-
-    filter = Module.new do
-      def hi(output)
-        output + ' hi!'
-      end
-    end
-
-    context = Context.new
-    context.add_filters(filter)
-    assert_equal 'hi? hi!', context.invoke(:hi, 'hi?')
-
-    context = Context.new
-    assert_equal 'hi?', context.invoke(:hi, 'hi?')
-
-    context.add_filters(filter)
-    assert_equal 'hi? hi!', context.invoke(:hi, 'hi?')
-
-  end
-
-  def test_override_global_filter
-    global = Module.new do
-      def notice(output)
-        "Global #{output}"
-      end
-    end
-
-    local = Module.new do
-      def notice(output)
-        "Local #{output}"
-      end
-    end
-
-    Template.register_filter(global)
-    assert_equal 'Global test', Template.parse("{{'test' | notice }}").render
-    assert_equal 'Local test', Template.parse("{{'test' | notice }}").render({}, :filters => [local])
-  end
-
-  def test_only_intended_filters_make_it_there
-
-    filter = Module.new do
-      def hi(output)
-        output + ' hi!'
-      end
-    end
-
-    context = Context.new
-    methods_before = context.strainer.methods.map { |method| method.to_s }
-    context.add_filters(filter)
-    methods_after = context.strainer.methods.map { |method| method.to_s }
-    assert_equal (methods_before + ["hi"]).sort, methods_after.sort
-  end
-
-  def test_add_item_in_outer_scope
-    @context['test'] = 'test'
-    @context.push
-    assert_equal 'test', @context['test']
-    @context.pop
-    assert_equal 'test', @context['test']
-  end
-
-  def test_add_item_in_inner_scope
-    @context.push
-    @context['test'] = 'test'
-    assert_equal 'test', @context['test']
-    @context.pop
-    assert_equal nil, @context['test']
-  end
-
-  def test_hierachical_data
-    @context['hash'] = {"name" => 'tobi'}
-    assert_equal 'tobi', @context['hash.name']
-    assert_equal 'tobi', @context['hash["name"]']
-  end
-
-  def test_keywords
-    assert_equal true, @context['true']
-    assert_equal false, @context['false']
-  end
-
-  def test_digits
-    assert_equal 100, @context['100']
-    assert_equal 100.00, @context['100.00']
-  end
-
-  def test_strings
-    assert_equal "hello!", @context['"hello!"']
-    assert_equal "hello!", @context["'hello!'"]
-  end
-
-  def test_merge
-    @context.merge({ "test" => "test" })
-    assert_equal 'test', @context['test']
-    @context.merge({ "test" => "newvalue", "foo" => "bar" })
-    assert_equal 'newvalue', @context['test']
-    assert_equal 'bar', @context['foo']
-  end
-
-  def test_array_notation
-    @context['test'] = [1,2,3,4,5]
-
-    assert_equal 1, @context['test[0]']
-    assert_equal 2, @context['test[1]']
-    assert_equal 3, @context['test[2]']
-    assert_equal 4, @context['test[3]']
-    assert_equal 5, @context['test[4]']
-  end
-
-  def test_recoursive_array_notation
-    @context['test'] = {'test' => [1,2,3,4,5]}
-
-    assert_equal 1, @context['test.test[0]']
-
-    @context['test'] = [{'test' => 'worked'}]
-
-    assert_equal 'worked', @context['test[0].test']
-  end
-
-  def test_hash_to_array_transition
-    @context['colors'] = {
-      'Blue'    => ['003366','336699', '6699CC', '99CCFF'],
-      'Green'   => ['003300','336633', '669966', '99CC99'],
-      'Yellow'  => ['CC9900','FFCC00', 'FFFF99', 'FFFFCC'],
-      'Red'     => ['660000','993333', 'CC6666', 'FF9999']
+    [Before]
+    public function setUp():void {
+      instance = new Context();
     }
 
-    assert_equal '003366', @context['colors.Blue[0]']
-    assert_equal 'FF9999', @context['colors.Red[3]']
-  end
+    [After]
+    public function tearDown():void {
+      instance = null;
+    }
 
-  def test_try_first
-    @context['test'] = [1,2,3,4,5]
+    // TODO Consider splitting into sub-tests
+    [Test]
+    public function shouldTestVariables():void {
+      instance.setItem('string', 'string');
+      assertEquals('string', instance.getItem('string'));
 
-    assert_equal 1, @context['test.first']
-    assert_equal 5, @context['test.last']
+      instance.setItem('num', 5);
+      assertEquals(5, instance.getItem('num'));
 
-    @context['test'] = {'test' => [1,2,3,4,5]}
+      instance.setItem('time', Date.parse('2006/06/06 12:00:00'));
+      assertEquals(Date.parse('2006/06/06 12:00:00'), instance.getItem('time'));
 
-    assert_equal 1, @context['test.test.first']
-    assert_equal 5, @context['test.test.last']
+      // TODO Is this necessary, just Date on AS3
+      //instance.setItem('date', Date.today);
+      //assertEquals(Date.today, instance.getItem('date'));
 
-    @context['test'] = [1]
-    assert_equal 1, @context['test.first']
-    assert_equal 1, @context['test.last']
-  end
+      var now:Date = new Date();
+      instance.setItem('datetime', now);
+      assertEquals(now, instance.getItem('datetime'));
 
-  def test_access_hashes_with_hash_notation
-    @context['products'] = {'count' => 5, 'tags' => ['deepsnow', 'freestyle'] }
-    @context['product'] = {'variants' => [ {'title' => 'draft151cm'}, {'title' => 'element151cm'}  ]}
+      instance.setItem('bool', true);
+      assertEquals(true, instance.getItem('bool'));
 
-    assert_equal 5, @context['products["count"]']
-    assert_equal 'deepsnow', @context['products["tags"][0]']
-    assert_equal 'deepsnow', @context['products["tags"].first']
-    assert_equal 'draft151cm', @context['product["variants"][0]["title"]']
-    assert_equal 'element151cm', @context['product["variants"][1]["title"]']
-    assert_equal 'draft151cm', @context['product["variants"][0]["title"]']
-    assert_equal 'element151cm', @context['product["variants"].last["title"]']
-  end
+      instance.setItem('bool', false);
+      assertEquals(false, instance.getItem('bool'));
 
-  def test_access_variable_with_hash_notation
-    @context['foo'] = 'baz'
-    @context['bar'] = 'foo'
+      instance.setItem('null', null);
+      assertEquals(null, instance.getItem('null'));
+      assertEquals(null, instance.getItem('null'));
+    }
 
-    assert_equal 'baz', @context['["foo"]']
-    assert_equal 'baz', @context['[bar]']
-  end
+    [Test]
+    public function shouldTestVariablesNotExisting():void {
+      assertEquals(null, instance.getItem('does_not_exist'));
+    }
 
-  def test_access_hashes_with_hash_access_variables
+    [Test]
+    public function shouldTestScoping():void {
+      assertDoesNotThrow(function():void {
+        instance.push();
+        instance.pop();
+      });
 
-    @context['var'] = 'tags'
-    @context['nested'] = {'var' => 'tags'}
-    @context['products'] = {'count' => 5, 'tags' => ['deepsnow', 'freestyle'] }
+      assertThrows(liquid.errors.ContextError, function():void {
+        instance.pop();
+      });
 
-    assert_equal 'deepsnow', @context['products[var].first']
-    assert_equal 'freestyle', @context['products[nested.var].last']
-  end
+      assertThrows(liquid.errors.ContextError, function():void {
+        instance.push();
+        instance.pop();
+        instance.pop();
+      });
+    }
 
-  def test_hash_notation_only_for_hash_access
-    @context['array'] = [1,2,3,4,5]
-    @context['hash'] = {'first' => 'Hello'}
+    [Test]
+    public function shouldTestLengthQuery():void {
+      instance.setItem('numbers', [1, 2, 3, 4]);
+      assertEquals(4, instance.getItem('numbers.size'));
 
-    assert_equal 1, @context['array.first']
-    assert_equal nil, @context['array["first"]']
-    assert_equal 'Hello', @context['hash["first"]']
-  end
+      // TODO Enable when we put in support for counting properties on objects
+      //instance.setItem('numbers', {1: 1, 2: 2, 3: 3, 4: 4});
+      //assertEquals(4, instance.getItem('numbers.size'));
 
-  def test_first_can_appear_in_middle_of_callchain
+      instance.setItem('numbers', {1: 1, 2: 2, 3: 3, 4: 4, 'size': 1000});
+      assertEquals(1000, instance.getItem('numbers.size'));
+    }
 
-    @context['product'] = {'variants' => [ {'title' => 'draft151cm'}, {'title' => 'element151cm'}  ]}
+    [Test]
+    public function shouldTestHyphenatedVariable():void {
+      instance.setItem('oh-my', 'godz');
+      assertEquals('godz', instance.getItem('oh-my'));
+    }
 
-    assert_equal 'draft151cm', @context['product.variants[0].title']
-    assert_equal 'element151cm', @context['product.variants[1].title']
-    assert_equal 'draft151cm', @context['product.variants.first.title']
-    assert_equal 'element151cm', @context['product.variants.last.title']
+    [Test]
+    public function shouldTestAddFilter():void {
+      var filter:Object = {
+        'hi': function(output:String):String {
+          return output + ' hi!';
+        }
+      }
 
-  end
+      var context:Context = new Context();
+      context.addFilters(filter);
+      assertEquals('hi? hi!', context.invoke('hi', 'hi?'));
 
-  def test_cents
-    @context.merge( "cents" => HundredCentes.new )
-    assert_equal 100, @context['cents']
-  end
+      context = new Context();
+      assertEquals('hi?', context.invoke('hi', 'hi?'));
 
-  def test_nested_cents
-    @context.merge( "cents" => { 'amount' => HundredCentes.new} )
-    assert_equal 100, @context['cents.amount']
+      context.addFilters(filter);
+      assertEquals('hi? hi!', context.invoke('hi', 'hi?'));
+    }
 
-    @context.merge( "cents" => { 'cents' => { 'amount' => HundredCentes.new} } )
-    assert_equal 100, @context['cents.cents.amount']
-  end
+    [Test]
+    public function shouldTestOverrideGlobalFilter():void {
+      var global:Object = {
+        "notice": function(output:String):String {
+          return "Global " + output;
+        }
+      }
 
-  def test_cents_through_drop
-    @context.merge( "cents" => CentsDrop.new )
-    assert_equal 100, @context['cents.amount']
-  end
+      var local:Object = {
+        "notice": function(output:String):String {
+          return "Local " + output;
+        }
+      }
 
-  def test_nested_cents_through_drop
-    @context.merge( "vars" => {"cents" => CentsDrop.new} )
-    assert_equal 100, @context['vars.cents.amount']
-  end
+      Template.registerFilter(global);
+      assertEquals('Global test', Template.parse("{{'test' | notice }}").render());
+      assertEquals('Local test', Template.parse("{{'test' | notice }}").render({}, {'filters': [local]}));
+    }
 
-  def test_drop_methods_with_question_marks
-    @context.merge( "cents" => CentsDrop.new )
-    assert @context['cents.non_zero?']
-  end
+    [Test]
+    public function shouldTestOnlyIntendedFiltersMakeItThere():void {
+      var filter:Object = {
+        "hi":  function(output:String):String {
+          return output + ' hi!';
+        }
+      }
 
-  def test_context_from_within_drop
-    @context.merge( "test" => '123', "vars" => ContextSensitiveDrop.new )
-    assert_equal '123', @context['vars.test']
-  end
+      var context:Context = new Context();
+      var methodsBefore:Array = context.strainer.methods.map(function(method:*, index:int, array:Array):String {
+        return method.toString();
+      });
+      context.addFilters(filter);
+      var methodsAfter:Array = context.strainer.methods.map(function(method:*, index:int, array:Array):String {
+        return method.toString();
+      });
+      assertEqualsNestedArrays(methodsBefore.concat(["hi"]).sort(), methodsAfter.sort());
+    }
 
-  def test_nested_context_from_within_drop
-    @context.merge( "test" => '123', "vars" => {"local" => ContextSensitiveDrop.new }  )
-    assert_equal '123', @context['vars.local.test']
-  end
+    [Test]
+    public function shouldTestAddItemInOuterScope():void {
+      instance.setItem('test', 'test');
+      instance.push();
+      assertEquals('test', instance.getItem('test'));
+      instance.pop();
+      assertEquals('test', instance.getItem('test'));
+    }
 
-  def test_ranges
-    @context.merge( "test" => '5' )
-    assert_equal (1..5), @context['(1..5)']
-    assert_equal (1..5), @context['(1..test)']
-    assert_equal (5..5), @context['(test..test)']
-  end
+    [Test]
+    public function shouldTestAddItemInInnerScope():void {
+      instance.push();
+      instance.setItem('test', 'test');
+      assertEquals('test', instance.getItem('test'));
+      instance.pop();
+      assertEquals(null, instance.getItem('test'));
+    }
 
-  def test_cents_through_drop_nestedly
-    @context.merge( "cents" => {"cents" => CentsDrop.new} )
-    assert_equal 100, @context['cents.cents.amount']
+    [Test]
+    public function shouldTestHierachicalData():void {
+      instance.setItem('hash', { "name": 'tobi' } );
+      assertEquals('tobi', instance.getItem('hash.name'));
+      assertEquals('tobi', instance.getItem('hash["name"]'));
+    }
 
-    @context.merge( "cents" => { "cents" => {"cents" => CentsDrop.new}} )
-    assert_equal 100, @context['cents.cents.cents.amount']
-  end
+    [Test]
+    public function shouldTestKeywords():void {
+      assertEquals(true, instance.getItem('true'));
+      assertEquals(false, instance.getItem('false'));
+    }
 
-  def test_drop_with_variable_called_only_once
-    @context['counter'] = CounterDrop.new
+    [Test]
+    public function shouldTestDigits():void {
+      assertEquals(100, instance.getItem('100'));
+      assertEquals(100.00, instance.getItem('100.00'));
+    }
 
-    assert_equal 1, @context['counter.count']
-    assert_equal 2, @context['counter.count']
-    assert_equal 3, @context['counter.count']
-  end
+    [Test]
+    public function shouldTestStrings():void {
+      assertEquals("hello!", instance.getItem('"hello!"'));
+      assertEquals("hello!", instance.getItem("'hello!'"));
+    }
 
-  def test_drop_with_key_called_only_once
-    @context['counter'] = CounterDrop.new
+    [Test]
+    public function shouldTestMerge():void {
+      instance.merge( { "test": "test" } );
+      assertEquals('test', instance.getItem('test'));
+      instance.merge( { "test": "newvalue", "foo": "bar" } );
+      assertEquals('newvalue', instance.getItem('test'));
+      assertEquals('bar', instance.getItem('foo'));
+    }
 
-    assert_equal 1, @context['counter["count"]']
-    assert_equal 2, @context['counter["count"]']
-    assert_equal 3, @context['counter["count"]']
-  end
+    [Test]
+    public function shouldTestArrayNotation():void {
+      instance.setItem('test', [1, 2, 3, 4, 5]);
 
-  def test_proc_as_variable
-    @context['dynamic'] = Proc.new { 'Hello' }
+      assertEquals(1, instance.getItem('test[0]'));
+      assertEquals(2, instance.getItem('test[1]'));
+      assertEquals(3, instance.getItem('test[2]'));
+      assertEquals(4, instance.getItem('test[3]'));
+      assertEquals(5, instance.getItem('test[4]'));
+    }
 
-    assert_equal 'Hello', @context['dynamic']
-  end
+    [Test]
+    public function shouldTestRecursiveArrayNotation():void {
+      instance.setItem('test', { 'test': [1, 2, 3, 4, 5] } );
+      assertEquals(1, instance.getItem('test.test[0]'));
 
-  def test_lambda_as_variable
-    @context['dynamic'] = proc { 'Hello' }
+      instance.setItem('test', [ { 'test': 'worked' } ]);
+      assertEquals('worked', instance.getItem('test[0].test'));
+    }
 
-    assert_equal 'Hello', @context['dynamic']
-  end
+    [Test]
+    public function shouldTestHashToArrayTransition():void {
+      instance.setItem('colors', {
+        'Blue':     ['003366','336699', '6699CC', '99CCFF'],
+        'Green':    ['003300','336633', '669966', '99CC99'],
+        'Yellow':   ['CC9900','FFCC00', 'FFFF99', 'FFFFCC'],
+        'Red':      ['660000','993333', 'CC6666', 'FF9999']
+      });
 
-  def test_nested_lambda_as_variable
-    @context['dynamic'] = { "lambda" => proc { 'Hello' } }
+      assertEquals('003366', instance.getItem('colors.Blue[0]'));
+      assertEquals('FF9999', instance.getItem('colors.Red[3]'));
+    }
 
-    assert_equal 'Hello', @context['dynamic.lambda']
-  end
+    [Test]
+    public function shouldTestTryFirst():void {
+      instance.setItem('test', [1, 2, 3, 4, 5]);
+      assertEquals(1, instance.getItem('test.first'));
+      assertEquals(5, instance.getItem('test.last'));
 
-  def test_array_containing_lambda_as_variable
-    @context['dynamic'] = [1,2, proc { 'Hello' } ,4,5]
+      instance.setItem('test', { 'test': [1, 2, 3, 4, 5] } );
+      assertEquals(1, instance.getItem('test.test.first'));
+      assertEquals(5, instance.getItem('test.test.last'));
 
-    assert_equal 'Hello', @context['dynamic[2]']
-  end
+      instance.setItem('test', [1]);
+      assertEquals(1, instance.getItem('test.first'));
+      assertEquals(1, instance.getItem('test.last'));
+    }
 
-  def test_lambda_is_called_once
-    @context['callcount'] = proc { @global ||= 0; @global += 1; @global.to_s }
+    [Test]
+    public function shouldTestAccessHashesWithHashNotation():void {
+      instance.setItem('products', { 'count': 5, 'tags': ['deepsnow', 'freestyle'] } );
+      instance.setItem('product', { 'variants': [ { 'title': 'draft151cm' }, { 'title': 'element151cm' }  ] } );
 
-    assert_equal '1', @context['callcount']
-    assert_equal '1', @context['callcount']
-    assert_equal '1', @context['callcount']
+      assertEquals(5, instance.getItem('products["count"]'));
+      assertEquals('deepsnow', instance.getItem('products["tags"][0]'));
+      assertEquals('deepsnow', instance.getItem('products["tags"].first'));
+      assertEquals('draft151cm', instance.getItem('product["variants"][0]["title"]'));
+      assertEquals('element151cm', instance.getItem('product["variants"][1]["title"]'));
+      assertEquals('draft151cm', instance.getItem('product["variants"][0]["title"]'));
+      assertEquals('element151cm', instance.getItem('product["variants"].last["title"]'));
+    }
 
-    @global = nil
-  end
+    [Test]
+    public function shouldTestAccessVariableWithHashNotation():void {
+      instance.setItem('foo', 'baz');
+      instance.setItem('bar', 'foo');
 
-  def test_nested_lambda_is_called_once
-    @context['callcount'] = { "lambda" => proc { @global ||= 0; @global += 1; @global.to_s } }
+      assertEquals('baz', instance.getItem('["foo"]'));
+      assertEquals('baz', instance.getItem('[bar]'));
+    }
 
-    assert_equal '1', @context['callcount.lambda']
-    assert_equal '1', @context['callcount.lambda']
-    assert_equal '1', @context['callcount.lambda']
+    [Test]
+    public function shouldTestAccessHashesWithHashAccessVariables():void {
+      instance.setItem('var', 'tags');
+      instance.setItem('nested', { 'var': 'tags' } );
+      instance.setItem('products', { 'count': 5, 'tags': ['deepsnow', 'freestyle'] } );
 
-    @global = nil
-  end
+      assertEquals('deepsnow', instance.getItem('products[var].first'));
+      assertEquals('freestyle', instance.getItem('products[nested.var].last'));
+    }
 
-  def test_lambda_in_array_is_called_once
-    @context['callcount'] = [1,2, proc { @global ||= 0; @global += 1; @global.to_s } ,4,5]
+    [Test]
+    public function shouldTestHashNotationOnlyForHashAccess():void {
+      instance.setItem('array', [1, 2, 3, 4, 5]);
+      instance.setItem('hash', { 'first': 'Hello' } );
 
-    assert_equal '1', @context['callcount[2]']
-    assert_equal '1', @context['callcount[2]']
-    assert_equal '1', @context['callcount[2]']
+      assertEquals(1, instance.getItem('array.first'));
+      assertEquals(null, instance.getItem('array["first"]'));
+      assertEquals('Hello', instance.getItem('hash["first"]'));
+    }
 
-    @global = nil
-  end
+    [Test]
+    public function shouldTestFirstCanAppearInMiddleOfCallchain():void {
+      instance.setItem('product', { 'variants': [ { 'title': 'draft151cm' }, { 'title': 'element151cm' } ] } );
 
-  def test_access_to_context_from_proc
-    @context.registers[:magic] = 345392
+      assertEquals('draft151cm', instance.getItem('product.variants[0].title'));
+      assertEquals('element151cm', instance.getItem('product.variants[1].title'));
+      assertEquals('draft151cm', instance.getItem('product.variants.first.title'));
+      assertEquals('element151cm', instance.getItem('product.variants.last.title'));
+    }
 
-    @context['magic'] = proc { @context.registers[:magic] }
+    [Test]
+    public function shouldTestCents():void {
+      instance.merge( { "cents": new HundredCents() } );
+      assertEquals(100, instance.getItem('cents'));
+    }
 
-    assert_equal 345392, @context['magic']
-  end
+    [Test]
+    public function shouldTestNestedCents():void {
+      instance.merge( { "cents": { 'amount': new HundredCents() } } );
+      assertEquals(100, instance.getItem('cents.amount'));
 
-  def test_to_liquid_and_context_at_first_level
-    @context['category'] = Category.new("foobar")
-    assert_kind_of CategoryDrop, @context['category']
-    assert_equal @context, @context['category'].context
-  end
-end # ContextTest
+      instance.merge( { "cents": { 'cents': { 'amount': new HundredCents() } } } );
+      assertEquals(100, instance.getItem('cents.cents.amount'));
+    }
+
+// TODO Enable when Drop is implemented
+/*
+    [Test]
+    public function shouldTestCentsThroughDrop():void {
+    instance.merge( "cents": CentsDrop.new )
+    assertEquals(100, instance.getItem('cents.amount']
+    }
+
+    [Test]
+    public function shouldTestNestedCentsThroughDrop():void {
+    instance.merge( "vars": {"cents": CentsDrop.new} )
+    assertEquals(100, instance.getItem('vars.cents.amount']
+    }
+
+    [Test]
+    public function shouldTestDropMethodsWithQuestionMarks():void {
+    instance.merge( "cents": CentsDrop.new )
+    assert instance.getItem('cents.non_zero?']
+    }
+
+    [Test]
+    public function shouldTestContextFromWithinDrop():void {
+    instance.merge( "test": '123', "vars": ContextSensitiveDrop.new )
+    assertEquals('123', instance.getItem('vars.test']
+    }
+
+    [Test]
+    public function shouldTestNestedContextFromWithinDrop():void {
+    instance.merge( "test": '123', "vars": {"local": ContextSensitiveDrop.new }  )
+    assertEquals('123', instance.getItem('vars.local.test']
+    }
+*/
+
+    // TODO Figure out how to represent ranges in AS3
+    //[Test]
+    //public function shouldTestRanges():void {
+      //instance.merge( { "test": '5' } );
+      //assertEquals((1..5), instance.getItem('(1..5)'));
+      //assertEquals((1..5), instance.getItem('(1..test)']));
+      //assertEquals((5..5), instance.getItem('(test..test)']));
+    //}
+//
+
+// TODO Enable when Drop is implemented
+/*
+    [Test]
+    public function shouldTestCentsThroughDropNestedly():void {
+    instance.merge( "cents": {"cents": CentsDrop.new} )
+    assertEquals(100, instance.getItem('cents.cents.amount']
+
+    instance.merge( "cents": { "cents": {"cents": CentsDrop.new}} )
+    assertEquals(100, instance.getItem('cents.cents.cents.amount']
+    }
+
+    [Test]
+    public function shouldTestDropWithVariableCalledOnlyOnce():void {
+    instance.setItem('counter', CounterDrop.new
+
+    assertEquals(1, instance.getItem('counter.count']
+    assertEquals(2, instance.getItem('counter.count']
+    assertEquals(3, instance.getItem('counter.count']
+    }
+
+    [Test]
+    public function shouldTestDropWithKeyCalledOnlyOnce():void {
+    instance.setItem('counter', CounterDrop.new
+
+    assertEquals(1, instance.getItem('counter["count"]']
+    assertEquals(2, instance.getItem('counter["count"]']
+    assertEquals(3, instance.getItem('counter["count"]']
+    }
+*/
+
+    // AS3 doesn't have lambda and procs so just test Function
+    [Test]
+    public function shouldTestFunctionAsVariable():void {
+      instance.setItem('dynamic', function():String { return 'Hello'; } );
+      assertEquals('Hello', instance.getItem('dynamic'));
+    }
+
+    [Test]
+    public function shouldTestNestedLambdaAsVariable():void {
+      instance.setItem('dynamic', { "lambda": function():String { return 'Hello'; } } );
+      assertEquals('Hello', instance.getItem('dynamic.lambda'));
+    }
+
+    [Test]
+    public function shouldTestArrayContainingLambdaAsVariable():void {
+      instance.setItem('dynamic', [1, 2, function():String { return 'Hello'; } , 4, 5]);
+      assertEquals('Hello', instance.getItem('dynamic[2]'));
+    }
+
+    [Test]
+    public function shouldTestLambdaIsCalledOnce():void {
+      var global:int = 0;
+      instance.setItem('callcount', function():String { global++; return global.toString(); } );
+
+      assertEquals('1', instance.getItem('callcount'));
+      assertEquals('1', instance.getItem('callcount'));
+      assertEquals('1', instance.getItem('callcount'));
+
+      global = 0;
+    }
+
+    [Test]
+    public function shouldTestNestedLambdaIsCalledOnce():void {
+      var global:int = 0;
+      instance.setItem('callcount', { "lambda": function():String { global++; return global.toString(); }} );
+
+      assertEquals('1', instance.getItem('callcount.lambda'));
+      assertEquals('1', instance.getItem('callcount.lambda'));
+      assertEquals('1', instance.getItem('callcount.lambda'));
+
+      global = 0;
+    }
+
+    [Test]
+    public function shouldTestLambdaInArrayIsCalledOnce():void {
+      var global:int = 0;
+      instance.setItem('callcount', [1, 2, function():String { global++; return global.toString(); } , 4, 5]);
+
+      assertEquals('1', instance.getItem('callcount[2]'));
+      assertEquals('1', instance.getItem('callcount[2]'));
+      assertEquals('1', instance.getItem('callcount[2]'));
+
+      global = 0;
+    }
+
+    [Test]
+    public function shouldTestAccessToContextFromProc():void {
+      instance.registers['magic'] = 345392;
+      instance.setItem('magic', function():int { return instance.registers['magic']; } );
+
+      assertEquals(345392, instance.getItem('magic'));
+    }
+
+// TODO Enable when Category is implemented
+/*
+    [Test]
+    public function shouldTestToLiquidAndContextAtFirstLevel():void {
+    instance.setItem('category', Category.new("foobar")
+    assert_kind_of CategoryDrop, instance.getItem('category']
+    assertEquals(instance, instance.getItem('category'].context
+    }
+*/
+  }
+}
+
+class HundredCents {
+  public function toLiquid():int {
+    return 100;
+  }
+}
+
+// TODO Enable when Drop is implemented
+//class CentsDrop extends Drop {
+  //public function get amount():HundredCents { return new HundredCents(); }
+  //public function get nonZero():Boolean { return true; }
+//}
+
+// TODO Enable when Drop is implemented
+//class ContextSensitiveDrop extends Drop {
+  //public function get test():* { return instance.getItem('test'); }
+//}
+
+// TODO Enable when Drop is implemented
+
+//class CentsDrop extends Drop {
+  //private var _name:String;
+//
+  //public function CentsDrop(var name:String) {
+    //_name = name;
+  //}
+//
+  //public function toLiquid():* {
+    //new CategoryDrop(this);
+  //}
+//}
+
+class CategoryDrop {
+  //attr_accessor :category, :context
+  //def initialize(category)
+    //@category = category
+  //  }
+}
+
+// TODO Enable when Drop is implemented
+//class CentsDrop extends Drop {
+  //private var _count:int = 0;
+  //public function get count():int { return _count++; }
+//}
+
+class ArrayLike {
+  public function fetch(index:int):void { }
+
+  //def [](index)
+    //@counts ||= []
+    //@counts[index] ||= 0
+    //@counts[index] += 1
+  //  }
+//
+  //def to_liquid
+    //self
+  //  }
+//  }
+}

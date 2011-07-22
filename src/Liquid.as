@@ -114,9 +114,56 @@ package {
       return flattened;
     }
 
+    // TODO Belongs on Array
+    public static function compact(arr:Array):Array {
+      return arr.filter(function(item:*, index:int, array:Array):Boolean {
+        return !!item;
+      });
+    }
+
+    // TODO Belongs on Array
+    public static function first(arr:Array):* {
+      return (arr.length > 0) ? arr[0] : null;
+    }
+
+    // TODO Belongs on Array
+    public static function last(arr:Array):* {
+      return (arr.length > 0) ? arr[arr.length-1] : null;
+    }
+
+    // TODO Belongs on Object
+    public static function merge(obj1:Object, obj2:Object):Object {
+      var obj:Object = { };
+      var k:String
+      for (k in obj1) {
+        obj[k] = obj1[k];
+      }
+      for (k in obj2) {
+        obj[k] = obj2[k];
+      }
+      return obj;
+    }
+
+    // TODO Belongs on Object
+    public static function mergeBang(obj1:Object, obj2:Object):Object {
+      for (var k:String in obj2) {
+        obj1[k] = obj2[k];
+      }
+      return obj1;
+    }
+
     // TODO Belongs where?
     public static function getClass(obj:Object):Class {
       return Class(getDefinitionByName(getQualifiedClassName(obj)));
+    }
+
+    // Debug function
+    public static function formatObject(obj:Object):String {
+      var props:Array = [];
+      for (var k:String in obj) {
+        props.push(k + ': ' + obj[k]);
+      }
+      return props.join(', ');
     }
   }
 

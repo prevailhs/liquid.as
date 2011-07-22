@@ -1,245 +1,331 @@
-module Liquid
+package liquid {
+  import liquid.errors.ArgumentError;
+  import liquid.errors.ContextError;
+  import liquid.errors.StackLevelError;
 
-  # Context keeps the variable stack and resolves variables, as well as keywords
-  #
-  #   context['variable'] = 'testing'
-  #   context['variable'] #=> 'testing'
-  #   context['true']     #=> true
-  #   context['10.2232']  #=> 10.2232
-  #
-  #   context.stack do
-  #      context['bob'] = 'bobsen'
-  #   end
-  #
-  #   context['bob']  #=> nil  class Context
-  class Context
-    attr_reader :scopes, :errors, :registers, :environments
+  import flash.utils.getQualifiedClassName;
 
-    def initialize(environments = {}, outer_scope = {}, registers = {}, rethrow_errors = false)
-      @environments   = [environments].flatten
-      @scopes         = [(outer_scope || {})]
-      @registers      = registers
-      @errors         = []
-      @rethrow_errors = rethrow_errors
-      squash_instance_assigns_with_environments
-    end
+  /**
+   * Context keeps the variable stack and resolves variables, as well as keywords
+   *
+   *   context.setItem('variable', 'testing')
+   *   context.getItem('variable')  *=> 'testing'
+   *   context.getItem('true')      *=> true
+   *   context.getItem('10.2232')   *=> 10.2232
+   *
+   *   context.stack do
+   *      context.setItem('bob', 'bobsen');
+   *   end
+   *
+   *   context.getItem('bob')   *=> nil
+   */
+  public class Context {
+    // TODO Should any of these be dictionaries?
+    private var _scopes:Array;
+    private var _errors:Array;
+    private var _registers:Object;
+    private var _environments:Array;
+    private var _rethrowErrors:Boolean;
+    private var _strainer:Strainer;
 
-    def strainer
-      @strainer ||= Strainer.create(self)
-    end
+    public function Context(environments:Object = null, outerScope:Object = null, registers:Object = null, rethrowErrors:Boolean = false) {
+      if (!environments) environments = { };
+      if (!outerScope) outerScope = { };
+      if (!registers) registers = { };
 
-    # Adds filters to this context.
-    #
-    # Note that this does not register the filters with the main Template object. see <tt>Template.register_filter</tt>
-    # for that
-    def add_filters(filters)
-      filters = [filters].flatten.compact
+      _environments   = Liquid.flatten([environments]);
+      _scopes         = [outerScope];
+      _registers      = registers;
+      _errors         = [];
+      _rethrowErrors  = rethrowErrors;
+      squashInstanceAssignsWithEnvironments();
+    }
 
-      filters.each do |f|
-        raise ArgumentError, "Expected module but got: #{f.class}" unless f.is_a?(Module)
-        strainer.extend(f)
-      end
-    end
+    public function get strainer():Strainer {
+      if (!_strainer) _strainer = Strainer.create(this);
+      return _strainer;
+    }
 
-    def handle_error(e)
-      errors.push(e)
-      raise if @rethrow_errors
+    /**
+     * Adds filters to this context.
+     *
+     * Note that this does not register the filters with the main Template object. see <tt>Template.register_filter</tt>
+     * for that
+     */
+    public function addFilters(filters:Object):void {
+      filters = Liquid.compact(Liquid.flatten([filters]));
 
-      case e
-      when SyntaxError
-        "Liquid syntax error: #{e.message}"
-      else
-        "Liquid error: #{e.message}"
-      end
-    end
+      for each (var f:* in filters) {
+        if (!(f is Object)) throw new liquid.errors.ArgumentError("Expected module but got: " + getQualifiedClassName(f));
+        strainer.extend(f);
+      }
+    }
 
-    def invoke(method, *args)
-      if strainer.respond_to?(method)
-        strainer.__send__(method, *args)
-      else
-        args.first
-      end
-    end
+    public function get errors():Array { return _errors; }
+    public function get registers():Object { return _registers; }
 
-    # Push new local scope on the stack. use <tt>Context#stack</tt> instead
-    def push(new_scope={})
-      raise StackLevelError, "Nesting too deep" if @scopes.length > 100
-      @scopes.unshift(new_scope)
-    end
+    public function handleError(e:Error):String {
+      errors.push(e);
+      if (_rethrowErrors) throw e;
 
-    # Merge a hash of variables in the current local scope
-    def merge(new_scopes)
-      @scopes[0].merge!(new_scopes)
-    end
+      if (e is SyntaxError) {
+        return "Liquid syntax error: " + e.message;
+      } else {
+        return "Liquid error: " + e.message;
+      }
+    }
 
-    # Pop from the stack. use <tt>Context#stack</tt> instead
-    def pop
-      raise ContextError if @scopes.size == 1
-      @scopes.shift
-    end
+    public function invoke(method:String, ... args):* {
+      if (method in strainer) {
+        // TODO Is using this correct here for apply
+        return strainer[method].apply(this, args);
+      } else {
+        return Liquid.first(args);
+      }
+    }
 
-    # Pushes a new local scope on the stack, pops it at the end of the block
-    #
-    # Example:
-    #   context.stack do
-    #      context['var'] = 'hi'
-    #   end
-    #
-    #   context['var]  #=> nil
-    def stack(new_scope={})
-      push(new_scope)
-      yield
-    ensure
-      pop
-    end
+    /**
+     * Push new local scope on the stack. use <tt>Context#stack</tt> instead
+     */
+    public function push(newScope:Object=null):void {
+      if (!newScope) newScope = {};
+      if (_scopes.length > 100) throw new StackLevelError("Nesting too deep");
+      _scopes.unshift(newScope);
+    }
 
-    def clear_instance_assigns
-      @scopes[0] = {}
-    end
+    /**
+     * Merge a hash of variables in the current local scope
+     */
+    public function merge(newScopes:Object):void {
+      Liquid.mergeBang(_scopes[0], newScopes);
+    }
 
-    # Only allow String, Numeric, Hash, Array, Proc, Boolean or <tt>Liquid::Drop</tt>
-    def []=(key, value)
-      @scopes[0][key] = value
-    end
+    /**
+     * Pop from the stack. use <tt>Context#stack</tt> instead
+     */
+    public function pop():Object {
+      if (_scopes.length == 1) throw new ContextError();
+      return _scopes.shift();
+    }
 
-    def [](key)
-      resolve(key)
-    end
+    //# Pushes a new local scope on the stack, pops it at the end of the block
+    //#
+    //# Example:
+    //#   context.stack do
+    //#      context['var'] = 'hi'
+    //#   end
+    //#
+    //#   context['var]  #=> nil
+    //def stack(new_scope={})
+      //push(new_scope)
+      //yield
+    //ensure
+      //pop
+    //end
+//
+    //def clear_instance_assigns
+      //@scopes[0] = {}
+    //end
+//
+    // Only allow String, Numeric, Hash, Array, Proc, Boolean or <tt>Liquid::Drop</tt>
+    public function setItem(key:String, value:*):void {
+      _scopes[0][key] = value;
+    }
 
-    def has_key?(key)
-      resolve(key) != nil
-    end
+    public function getItem(key:String):* {
+      return resolve(key);
+    }
 
-    private
-      LITERALS = {
-        nil => nil, 'nil' => nil, 'null' => nil, '' => nil,
-        'true'  => true,
-        'false' => false,
-        'blank' => :blank?,
-        'empty' => :empty?
+    public function hasItem(key:String):Boolean {
+      return resolve(key) != null;
+    }
+
+    private static const LITERALS:Object = {
+      //null: null, // TODO Is this one necessary?
+      'nil': null, 'null': null, '': null,
+      'true': true,
+      'false': false
+      // TODO Support symbols, perhaps with a custom Symbol class
+      //,
+      //'blank': 'blank',
+      //'empty': 'empty'
+    }
+
+      /**
+       * Look up variable, either resolve directly after considering the name. We can directly handle
+       * Strings, digits, floats and booleans (true,false).
+       * If no match is made we lookup the variable in the current scope and
+       * later move up to the parent blocks to see if we can resolve the variable somewhere up the tree.
+       * Some special keywords return symbols. Those symbols are to be called on the rhs object in expressions
+       *
+       * Example:
+       *   products == empty #=> products.empty?
+       */
+      private function resolve(key:String):* {
+        if (LITERALS.hasOwnProperty(key)) {
+          return LITERALS[key];
+        } else {
+          var matches:Array;
+          matches = key.match(/^'(.*)'$/);
+          if (matches) { // Single quoted strings
+            return matches[1];
+          } else  {
+            matches = key.match(/^"(.*)"$/);
+            if (matches) { // Double quoted strings
+              return matches[1];
+            } else {
+              matches = key.match(/^(\d+)$/);
+              if (matches) { // Integer and floats
+                return parseInt(matches[1]);
+                // TODO Support ranges, perhaps with a custom Range class
+    //          } else if (matches = key.match(/^\((\S+)\.\.(\S+)\)$/)) { //
+    //          Ranges
+    //            return [parseInt(resolve(matches[1])..parseInt(resolve(matches[2]))];
+              } else {
+                matches = key.match(/^(\d[\d\.]+)$/);
+                if (matches) { // Floats
+                  return parseFloat(matches[1]);
+                } else {
+                  return variable(key);
+                }
+              }
+            }
+          }
+        }
       }
 
-      # Look up variable, either resolve directly after considering the name. We can directly handle
-      # Strings, digits, floats and booleans (true,false).
-      # If no match is made we lookup the variable in the current scope and
-      # later move up to the parent blocks to see if we can resolve the variable somewhere up the tree.
-      # Some special keywords return symbols. Those symbols are to be called on the rhs object in expressions
-      #
-      # Example:
-      #   products == empty #=> products.empty?
-      def resolve(key)
-        if LITERALS.key?(key)
-          LITERALS[key]
-        else
-          case key
-          when /^'(.*)'$/ # Single quoted strings
-            $1
-          when /^"(.*)"$/ # Double quoted strings
-            $1
-          when /^(\d+)$/ # Integer and floats
-            $1.to_i
-          when /^\((\S+)\.\.(\S+)\)$/ # Ranges
-            (resolve($1).to_i..resolve($2).to_i)
-          when /^(\d[\d\.]+)$/ # Floats
-            $1.to_f
-          else
-            variable(key)
-          end
-        end
-      end
+      // Fetches an object starting at the local scope and then moving up the
+      // hierachy
+      private function findVariable(key:String):* {
+        // TODO What type is scope?
+        var scope:Object = Liquid.first(_scopes.filter(function(s:*, index:int, array:Array):Boolean {
+          return s.hasOwnProperty(key);
+        }));
 
-      # Fetches an object starting at the local scope and then moving up the hierachy
-      def find_variable(key)
-        scope = @scopes.find { |s| s.has_key?(key) }
+        if (!scope) {
+          // TODO What type is environment?
+          for each (var e:Object in _environments) {
+            var v:* = lookupAndEvaluate(e, key);
+            if (v) {
+              scope = e;
+              break;
+            }
+          }
+        }
 
-        if scope.nil?
-          @environments.each do |e|
-            if variable = lookup_and_evaluate(e, key)
-              scope = e
-              break
-            end
-          end
-        end
+        if (!scope) scope = Liquid.last(_environments);
+        if (!scope) scope = Liquid.first(_scopes);
+        if (!v) v = lookupAndEvaluate(scope, key);
 
-        scope     ||= @environments.last || @scopes.last
-        variable  ||= lookup_and_evaluate(scope, key)
+        v = toLiquid(v);
+        if (v && 'context' in v) v.context = this;
 
-        variable = variable.to_liquid
-        variable.context = self if variable.respond_to?(:context=)
+        return v;
+      }
 
-        return variable
-      end
+      /**
+       * Resolves namespaced queries gracefully.
+       *
+       * Example
+       *  @context.getItem('hash') = {"name" => 'tobi'}
+       *  assert_equal 'tobi', @context.getItem('hash.name')
+       *  assert_equal 'tobi', @context.getItem('hash["name"]')
+       */
+      private function variable(markup:String):* {
+        var parts:Array = Liquid.scan(markup, Liquid.VariableParser);
+        var squareBracketed:RegExp = /^\[(.*)\]$/;
 
-      # Resolves namespaced queries gracefully.
-      #
-      # Example
-      #  @context['hash'] = {"name" => 'tobi'}
-      #  assert_equal 'tobi', @context['hash.name']
-      #  assert_equal 'tobi', @context['hash["name"]']
-      def variable(markup)
-        parts = markup.scan(VariableParser)
-        square_bracketed = /^\[(.*)\]$/
+        var firstPart:String = parts.shift();
 
-        first_part = parts.shift
+        var matches:Array = firstPart.match(squareBracketed);
+        if (matches) {
+          firstPart = resolve(matches[1]);
+        }
 
-        if first_part =~ square_bracketed
-          first_part = resolve($1)
-        end
+        var object:* = findVariable(firstPart);
+        if (object) {
+          for each (var part:String in parts) {
+            var partResolved:Array = part.match(squareBracketed);
+            if (partResolved) part = resolve(partResolved[1]);
 
-        if object = find_variable(first_part)
+            // If object is a hash- or array-like object we look for the
+            // presence of the key and if its available we return it
+            if (part is Object && (part in object || (object is Array && part is int))) {
 
-          parts.each do |part|
-            part = resolve($1) if part_resolved = (part =~ square_bracketed)
+              // if its a proc we will replace the entry with the proc
+              var res:* = lookupAndEvaluate(object, part);
+              object = toLiquid(res);
 
-            # If object is a hash- or array-like object we look for the
-            # presence of the key and if its available we return it
-            if object.respond_to?(:[]) and
-              ((object.respond_to?(:has_key?) and object.has_key?(part)) or
-               (object.respond_to?(:fetch) and part.is_a?(Integer)))
+              // Some special cases. If the part wasn't in square brackets and
+              // no key with the same name was found we interpret following
+              // calls as commands and call them on the current object.
+              // AS3 doesn't have size, first and last so do the mapping if
+              // necessary for Array
+              // TODO Consider if we need to allow Object either
+            } else if (!partResolved && (['size', 'first', 'last'].indexOf(part) >= 0) && ((part in object) || (object is Array))) {
+              if (part in object) {
+                object = toLiquid(object[part]);
+              } else if (object is Array) { // Array
+                switch(part) {
+                  case 'size': {
+                    object = toLiquid(object.length);
+                    break;
+                  }
+                  case 'first': {
+                    object = toLiquid(Liquid.first(object));
+                    break;
+                  }
+                  case 'last': {
+                    object = toLiquid(Liquid.last(object));
+                    break;
+                  }
+                }
+              }
 
-              # if its a proc we will replace the entry with the proc
-              res = lookup_and_evaluate(object, part)
-              object = res.to_liquid
+              // No key was present with the desired value and it wasn't one
+              // of the directly supported keywords either. The only thing we
+              // got left is to return nil
+            } else {
+              return null;
+            }
 
-              # Some special cases. If the part wasn't in square brackets and
-              # no key with the same name was found we interpret following calls
-              # as commands and call them on the current object
-            elsif !part_resolved and object.respond_to?(part) and ['size', 'first', 'last'].include?(part)
+            // If we are dealing with a drop here we have to
+            if ('context' in object) object.context = this;
+          }
+        }
 
-              object = object.send(part.intern).to_liquid
+        return object;
+      }
 
-              # No key was present with the desired value and it wasn't one of the directly supported
-              # keywords either. The only thing we got left is to return nil
-            else
-              return nil
-            end
+    private function lookupAndEvaluate(obj:Object, key:String):* {
+      var value:* = obj[key];
+      // TODO Verify its okay not to do the obj check, since all obj respond to []?
+      //if (value = obj[key]).is_a?(Proc) && obj.respond_to?(:[]=)
+      if (value is Function) {
+        obj[key] = (value.length == 0) ? value.call(this) : value.call(this, this);
+        return obj[key];
+      } else {
+        return value;
+      }
+    }
 
-            # If we are dealing with a drop here we have to
-            object.context = self if object.respond_to?(:context=)
-          end
-        end
+    private function squashInstanceAssignsWithEnvironments():void {
+      // TODO What type is scope?
+      var lastScope:Object = Liquid.last(_scopes);
+      for (var k:String in lastScope) {
+        // TODO What type is environment?
+        for each (var env:Object in _environments) {
+          if (env.hasOwnProperty(k)) {
+            lastScope[k] = lookupAndEvaluate(env, k);
+            break;
+          }
+        }
+      }
+    }
 
-        object
-      end # variable
-
-      def lookup_and_evaluate(obj, key)
-        if (value = obj[key]).is_a?(Proc) && obj.respond_to?(:[]=)
-          obj[key] = (value.arity == 0) ? value.call : value.call(self)
-        else
-          value
-        end
-      end # lookup_and_evaluate
-
-      def squash_instance_assigns_with_environments
-        @scopes.last.each_key do |k|
-          @environments.each do |env|
-            if env.has_key?(k)
-              scopes.last[k] = lookup_and_evaluate(env, k)
-              break
-            end
-          end
-        end
-      end # squash_instance_assigns_with_environments
-  end # Context
-
-end # Liquid
+    private static function toLiquid(obj:*):* {
+      if (obj && 'toLiquid' in obj) return obj.toLiquid();
+      return obj;
+    }
+  }
+}

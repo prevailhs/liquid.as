@@ -1,54 +1,68 @@
-require 'set'
+package liquid {
+  import liquid.errors.ArgumentError;
 
-module Liquid
+  /**
+   * Strainer is the parent class for the filters system.
+   * New filters are mixed into the strainer class which is then instanciated for each liquid template render run.
+   *
+   * One of the strainer's responsibilities is to keep malicious method calls out
+   */
+  public dynamic class Strainer extends Object {
+    private static const InternalMethod:RegExp = /^__/;
 
-  parent_object = if defined? BlankObject
-    BlankObject
-  else
-    Object
-  end
+    private static var _requiredMethods:Array = ['__id__', '__send__', 'respondTo', 'extend', 'methods', 'class', 'objectId'];
 
-  # Strainer is the parent class for the filters system.
-  # New filters are mixed into the strainer class which is then instanciated for each liquid template render run.
-  #
-  # One of the strainer's responsibilities is to keep malicious method calls out
-  class Strainer < parent_object #:nodoc:
-    INTERNAL_METHOD = /^__/
-    @@required_methods = Set.new([:__id__, :__send__, :respond_to?, :extend, :methods, :class, :object_id])
+    private static var _filters:Object = {};
+    private var _context:Context;
 
-    # Ruby 1.9.2 introduces Object#respond_to_missing?, which is invoked by Object#respond_to?
-    @@required_methods << :respond_to_missing? if Object.respond_to? :respond_to_missing?
+    public function Strainer(context:Context) {
+      _context = context;
+    }
 
-    @@filters = {}
+    public static function globalFilter(filter:*):void {
+      if (!(filter is Object)) throw new liquid.errors.ArgumentError("Passed filter is not a module");
+      _filters[filter.name] = filter;
+    }
 
-    def initialize(context)
-      @context = context
-    end
+    public static function create(context:Context):Strainer {
+      var strainer:Strainer = new Strainer(context);
+      for (var k:String in _filters) {
+        strainer.extend(_filters[k]);
+      }
+      return strainer;
+    }
 
-    def self.global_filter(filter)
-      raise ArgumentError, "Passed filter is not a module" unless filter.is_a?(Module)
-      @@filters[filter.name] = filter
-    end
+    public function respondTo(method:String, includePrivate:Boolean=false):Boolean {
+      var methodName:String = method.toString();
+      if (InternalMethod.test(methodName)) return false
+      if (_requiredMethods.indexOf(methodName) >= 0) return false;
+      return hasOwnProperty(method);
+    }
 
-    def self.create(context)
-      strainer = Strainer.new(context)
-      @@filters.each { |k,m| strainer.extend(m) }
-      strainer
-    end
 
-    def respond_to?(method, include_private = false)
-      method_name = method.to_s
-      return false if method_name =~ INTERNAL_METHOD
-      return false if @@required_methods.include?(method_name)
-      super
-    end
+    public function extend(f:Object):void {
+      for (var k:String in f) {
+        this[k] = f[k];
+      }
+    }
 
-    # remove all standard methods from the bucket so circumvent security
-    # problems
-    instance_methods.each do |m|
-      unless @@required_methods.include?(m.to_sym)
-        undef_method m
-      end
-    end
-  end
-end
+    // Returns the methods (i.e. properties) that could be called on this strainer;
+    //  used mainly for test
+    public function get methods():Array {
+      var m:Array = [];
+      for (var k:String in this) {
+        m.push(k);
+      }
+      return m;
+    }
+
+    // FIXME Figure out if we need to do this
+    // remove all standard methods from the bucket so circumvent security
+    // problems
+//    instance_methods.each do |m|
+//      unless @@required_methods.include?(m.to_sym)
+//        undef_method m
+//      end
+//    end
+  }
+}

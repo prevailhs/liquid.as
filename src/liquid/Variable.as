@@ -50,14 +50,13 @@ package liquid {
     public function render(context:Object):Object {
       if (!_name) return '';
       // emulate @filters.inject(context[@name])
-      var output:Object = context[_name];
+      var output:Object = context.getItem(_name);
       for each (var filter:Array in _filters) {
         var filterargs:Array = filter[1].map(function(item:*, index:int, array:Array):Object {
-          return context[item];
+          return context.getItem(item);
         });
         try {
-          // FIXME Need to invoke (?) the context, pass in args, huh?
-          //output = context.invoke(filter[0], output, *filterargs);
+          output = context.invoke.apply(context, [filter[0], output].concat(filterargs));
         } catch (error:FilterNotFound) {
           throw new FilterNotFound("Error - filter '" + filter[0] + "' in '" + Liquid.trim(_markup) + "' could not be found.");
         }

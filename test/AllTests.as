@@ -9,7 +9,7 @@ package {
     //import liquid.StandardFilterTest;
     //import liquid.OutputTest;
     //import liquid.FilterTest;
-    //import liquid.TemplateTest;
+    import liquid.TemplateTest;
     //import liquid.ConditionTest;
     //import liquid.SecurityTest;
     //import liquid.CaptureTest;
@@ -19,7 +19,7 @@ package {
     //import liquid.IncludeTagTest;
     //import liquid.ErrorHandlingTest;
     import liquid.RegExpTest;
-    //import liquid.StrainerTest;
+    import liquid.StrainerTest;
     //import liquid.ParsingQuirksTest;
     //import liquid.HTMLTagTest;
     //import liquid.tags.UnlessElseTest;
@@ -28,7 +28,7 @@ package {
     //import liquid.tags.IfElseTest;
     //import liquid.tags.LiteralTest;
     //import liquid.DropTest;
-    //import liquid.ContextTest;
+    import liquid.ContextTest;
     //import liquid.AssignTest;
 
     [Suite]
@@ -37,7 +37,7 @@ package {
         //public var liquid_StandardFilterTest:liquid.StandardFilterTest;
         //public var liquid_OutputTest:liquid.OutputTest;
         //public var liquid_FilterTest:liquid.FilterTest;
-        //public var liquid_TemplateTest:liquid.TemplateTest;
+        public var liquid_TemplateTest:liquid.TemplateTest;
         //public var liquid_ConditionTest:liquid.ConditionTest;
         //public var liquid_SecurityTest:liquid.SecurityTest;
         //public var liquid_CaptureTest:liquid.CaptureTest;
@@ -47,7 +47,7 @@ package {
         //public var liquid_IncludeTagTest:liquid.IncludeTagTest;
         //public var liquid_ErrorHandlingTest:liquid.ErrorHandlingTest;
         public var liquid_RegExpTest:liquid.RegExpTest;
-        //public var liquid_StrainerTest:liquid.StrainerTest;
+        public var liquid_StrainerTest:liquid.StrainerTest;
         //public var liquid_ParsingQuirksTest:liquid.ParsingQuirksTest;
         //public var liquid_HTMLTagTest:liquid.HTMLTagTest;
         //public var liquid_tags_UnlessElseTest:liquid.tags.UnlessElseTest;
@@ -56,7 +56,7 @@ package {
         //public var liquid_tags_IfElseTest:liquid.tags.IfElseTest;
         //public var liquid_tags_LiteralTest:liquid.tags.LiteralTest;
         //public var liquid_DropTest:liquid.DropTest;
-        //public var liquid_ContextTest:liquid.ContextTest;
+        public var liquid_ContextTest:liquid.ContextTest;
         //public var liquid_AssignTest:liquid.AssignTest;
 
     }
