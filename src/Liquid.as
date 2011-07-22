@@ -26,6 +26,9 @@ package {
   import flash.utils.getDefinitionByName;
   import flash.utils.getQualifiedClassName;
 
+  import liquid.Template;
+  import liquid.tags.*;
+
   public class Liquid extends Sprite {
     public static const FilterSeparator:RegExp            = /\|/;
     public static const ArgumentSeparator:String          = ',';
@@ -166,6 +169,9 @@ package {
       return props.join(', ');
     }
   }
+
+  //trace('Registering tags');
+  Template.registerTag('assign', Assign);
 
   // TODO Would like to do something like this for all these helper functions
 //  String.prototype.scan = function(pattern:*):Array {

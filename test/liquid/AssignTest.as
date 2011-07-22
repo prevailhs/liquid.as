@@ -1,15 +1,38 @@
-require 'test_helper'
+package liquid  {
 
-class AssignTest < Test::Unit::TestCase
-  include Liquid
+  import asunit.asserts.*;
+  import asunit.framework.IAsync;
+  import flash.display.Sprite;
 
-  def test_assigned_variable
-    assert_template_result('.foo.',
+  import support.phs.asserts.*;
+
+  public class AssignTest {
+
+    [Inject]
+    public var async:IAsync;
+
+    [Inject]
+    public var context:Sprite;
+
+
+    [Before]
+    public function setUp():void {
+    }
+
+    [After]
+    public function tearDown():void {
+    }
+
+    [Test]
+    public function shouldTestAssignedVariable():void {
+      assertTemplateResult('.foo.',
                            '{% assign foo = values %}.{{ foo[0] }}.',
-                           'values' => %w{foo bar baz})
+                           {'values': ['foo', 'bar', 'baz'] } );
 
-    assert_template_result('.bar.',
+      assertTemplateResult('.bar.',
                            '{% assign foo = values %}.{{ foo[1] }}.',
-                           'values' => %w{foo bar baz})
-  end
-end # AssignTest
+                           {'values': ['foo', 'bar', 'baz'] } );
+    }
+  }
+}
+

@@ -61,6 +61,7 @@ package liquid {
       }
     }
 
+    public function get scopes():Array { return _scopes; }
     public function get errors():Array { return _errors; }
     public function get registers():Object { return _registers; }
 

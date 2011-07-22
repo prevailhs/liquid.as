@@ -7,6 +7,8 @@ package support.phs.asserts {
   import flash.errors.IllegalOperationError;
   import flash.events.EventDispatcher;
 
+  import liquid.Template;
+
   /**
    * A set of assert methods.  Messages are only displayed when an assert fails.
    */
@@ -109,6 +111,30 @@ package support.phs.asserts {
       else {
         throw new IllegalOperationError("Invalid argument count");
       }
+    }
+
+    /**
+     * Asserts that a given template and assigns generate the expected output.
+     *
+     * TODO Convert this to use signature similar to other asserts
+     */
+    static public function assertTemplateResult(expected:String, template:String, assigns:Object = null, message:String = null):void {
+      var t:Template = Template.parse(template);
+      assertNotNull("Template failed to parse!", t);
+      assertEquals(message, expected, t.render(assigns));
+    }
+
+    /**
+     * Asserts that a given template and assigns match the expected output.
+     *
+     * TODO Convert this to use signature similar to other asserts
+     */
+    static public function assertTemplateResultMatches(expected:*, template:String, assigns:Object = null, message:String = null):void {
+      if (!(expected is RegExp)) return assertTemplateResult(expected, template, assigns, message);
+
+      var t:Template = Template.parse(template);
+      assertNotNull("Template failed to parse!", t);
+      assertMatches(message, expected, t.render(assigns));
     }
 
     // TODO These are copied from asunit.framework.Assert; would like to share, but its private?

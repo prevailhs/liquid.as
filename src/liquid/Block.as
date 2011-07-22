@@ -14,29 +14,33 @@ package liquid {
     /* /^#{VariableStart}(.*)#{VariableEnd}$/ */
     private static const ContentOfVariable:RegExp = Liquid.combineRegExp("^", Liquid.VariableStart, "(.*)", Liquid.VariableEnd, "$");
 
+    public function Block(tagName:String = null, markup:String = null, tokens:Array = null) {
+      super(tagName, markup, tokens);
+    }
+
     override public function parse(tokens:Array):void {
       _nodelist = [];
 
-      var token:String;
-      while (token = tokens.shift()) {
+      while (tokens.length > 0) {
+        var token:String = tokens.shift();
         if (IsTag.test(token)) {
-          var match:Array = token.match(FullToken);
-          if (match) {
+          var matches:Array = token.match(FullToken);
+          if (matches) {
             // if we found the proper block delimitor just end parsing here and let the outer block
             // proceed
-            if (blockDelimiter == match[0]) {
+            if (blockDelimiter == matches[1]) {
               endTag();
               return;
             }
 
             // fetch the tag from registered blocks
-            var tag:Class = Template.tags[match[0]];
+            var tag:Class = Template.tags[matches[1]];
             if (tag) {
-              _nodelist.push(new tag(match[0], match[1], tokens));
+              _nodelist.push(new tag(matches[1], matches[2], tokens));
             } else {
               // this tag is not registered with the system
               // pass it to the current block for special handling or error reporting
-              unknownTag(match[0], match[1], tokens);
+              unknownTag(matches[1], matches[2], tokens);
             }
 
           } else {

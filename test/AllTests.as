@@ -29,7 +29,7 @@ package {
     //import liquid.tags.LiteralTest;
     //import liquid.DropTest;
     import liquid.ContextTest;
-    //import liquid.AssignTest;
+    import liquid.AssignTest;
 
     [Suite]
     public class AllTests {
@@ -57,7 +57,7 @@ package {
         //public var liquid_tags_LiteralTest:liquid.tags.LiteralTest;
         //public var liquid_DropTest:liquid.DropTest;
         public var liquid_ContextTest:liquid.ContextTest;
-        //public var liquid_AssignTest:liquid.AssignTest;
+        public var liquid_AssignTest:liquid.AssignTest;
 
     }
 }

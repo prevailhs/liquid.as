@@ -73,14 +73,13 @@ package liquid  {
       //assertEquals(3, template.root.nodelist.length);
     //}
 
-    // TODO Enable when registerTag is supported
-    //[Test]
-    //public function shouldTestWithCustomTag():void {
-      //Template.registerTag("testtag", Class(Block));
-      //assertDoesNotThrow(function():void {
-        //var template:Template = Template.parse("{% testtag %} {% endtesttag %}");
-      //});
-    //}
+    [Test]
+    public function shouldTestWithCustomTag():void {
+      Template.registerTag("testtag", Block);
+      assertDoesNotThrow(function():void {
+        var template:Template = Template.parse("{% testtag %} {% endtesttag %}");
+      });
+    }
 
     private function blockTypes(nodelist:Array):Array {
       return nodelist.map(function(item:*, index:int, array:Array):Object {

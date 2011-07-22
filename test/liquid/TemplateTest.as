@@ -55,21 +55,19 @@ package liquid  {
       assertEqualsNestedArrays(['  ', '{% comment %}', ' ', '{% endcomment %}', ' '], new Template().tokenize("  {% comment %} {% endcomment %} "));
     }
 
-    // TODO Enable when assign is implemented
-    //[Test]
-    //public function shouldTestInstanceAssignsPersistOnSameTemplateObjectBetweenParses():void {
-      //var t:Template = new Template();
-      //assertEquals('from instance assigns', t.parse("{% assign foo = 'from instance assigns' %}{{ foo }}").render());
-      //assertEquals('from instance assigns', t.parse("{{ foo }}").render());
-    //}
+    [Test]
+    public function shouldTestInstanceAssignsPersistOnSameTemplateObjectBetweenParses():void {
+      var t:Template = new Template();
+      assertEquals('from instance assigns', t.parse("{% assign foo = 'from instance assigns' %}{{ foo }}").render());
+      assertEquals('from instance assigns', t.parse("{{ foo }}").render());
+    }
 
-    // TODO Enable when assign is implemented
-    //[Test]
-    //public function shouldTestInstanceAssignsPersistOnSameTemplateParsingBetweenRenders():void {
-      //var t:Template = new Template().parse("{{ foo }}{% assign foo = 'foo' %}{{ foo }}");
-      //assertEquals('foo', t.render());
-      //assertEquals('foofoo', t.render());
-    //}
+    [Test]
+    public function shouldTestInstanceAssignsPersistOnSameTemplateParsingBetweenRenders():void {
+      var t:Template = new Template().parse("{{ foo }}{% assign foo = 'foo' %}{{ foo }}");
+      assertEquals('foo', t.render());
+      assertEquals('foofoo', t.render());
+    }
 
     [Test]
     public function shouldTestCustomAssignsDoNotPersistOnSameTemplate():void {
@@ -78,22 +76,20 @@ package liquid  {
       assertEquals('', t.parse("{{ foo }}").render());
     }
 
-    // TODO Enable when assign is implemented
-    //[Test]
-    //public function shouldTestCustomAssignsSquashInstanceAssigns():void {
-      //var t:Template = new Template();
-      //assertEquals('from instance assigns', t.parse("{% assign foo = 'from instance assigns' %}{{ foo }}").render());
-      //assertEquals('from custom assigns', t.parse("{{ foo }}").render({'foo': 'from custom assigns'}));
-    //}
+    [Test]
+    public function shouldTestCustomAssignsSquashInstanceAssigns():void {
+      var t:Template = new Template();
+      assertEquals('from instance assigns', t.parse("{% assign foo = 'from instance assigns' %}{{ foo }}").render());
+      assertEquals('from custom assigns', t.parse("{{ foo }}").render({'foo': 'from custom assigns'}));
+    }
 
-    // TODO Enable when assign is implemented
-    //[Test]
-    //public function shouldTestPersistentAssignsSquashInstanceAssigns():void {
-      //var t:Template = new Template();
-      //assertEquals('from instance assigns', t.parse("{% assign foo = 'from instance assigns' %}{{ foo }}").render());
-      //t.assigns['foo'] = 'from persistent assigns';
-      //assertEquals('from persistent assigns', t.parse("{{ foo }}").render());
-    //}
+    [Test]
+    public function shouldTestPersistentAssignsSquashInstanceAssigns():void {
+      var t:Template = new Template();
+      assertEquals('from instance assigns', t.parse("{% assign foo = 'from instance assigns' %}{{ foo }}").render());
+      t.assigns['foo'] = 'from persistent assigns';
+      assertEquals('from persistent assigns', t.parse("{{ foo }}").render());
+    }
 
     [Test]
     public function shouldTestLambdaIsCalledOnceFromPersistentAssignsOverMultipleParsesAndRenders():void {
