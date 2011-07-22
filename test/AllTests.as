@@ -27,7 +27,7 @@ package {
     //import liquid.tags.StatementsTest;
     //import liquid.tags.IfElseTest;
     //import liquid.tags.LiteralTest;
-    //import liquid.DropTest;
+    import liquid.DropTest;
     import liquid.ContextTest;
     import liquid.AssignTest;
 
@@ -55,7 +55,7 @@ package {
         //public var liquid_tags_StatementsTest:liquid.tags.StatementsTest;
         //public var liquid_tags_IfElseTest:liquid.tags.IfElseTest;
         //public var liquid_tags_LiteralTest:liquid.tags.LiteralTest;
-        //public var liquid_DropTest:liquid.DropTest;
+        public var liquid_DropTest:liquid.DropTest;
         public var liquid_ContextTest:liquid.ContextTest;
         public var liquid_AssignTest:liquid.AssignTest;
 

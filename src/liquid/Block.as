@@ -1,6 +1,4 @@
 package liquid {
-  import flash.events.ContextMenuEvent;
-  import flash.net.URLVariables;
   import liquid.errors.SyntaxError;
 
   public class Block extends Tag {

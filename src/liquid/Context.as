@@ -251,7 +251,7 @@ package liquid {
 
             // If object is a hash- or array-like object we look for the
             // presence of the key and if its available we return it
-            if (part is Object && (part in object || (object is Array && part is int))) {
+            if (object is Object && (part in object || object is Drop || (object is Array && part is int))) {
 
               // if its a proc we will replace the entry with the proc
               var res:* = lookupAndEvaluate(object, part);
@@ -299,7 +299,8 @@ package liquid {
       }
 
     private function lookupAndEvaluate(obj:Object, key:String):* {
-      var value:* = obj[key];
+      // AS3 doesn't support :[] method, so need to detect drop and use invokeDrop
+      var value:* = (obj is Drop) ? obj.invokeDrop(key) : obj[key];
       // TODO Verify its okay not to do the obj check, since all obj respond to []?
       //if (value = obj[key]).is_a?(Proc) && obj.respond_to?(:[]=)
       if (value is Function) {
