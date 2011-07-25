@@ -10,7 +10,7 @@ package {
     //import liquid.OutputTest;
     //import liquid.FilterTest;
     import liquid.TemplateTest;
-    //import liquid.ConditionTest;
+    import liquid.ConditionTest;
     //import liquid.SecurityTest;
     //import liquid.CaptureTest;
     import liquid.VariableTest;
@@ -38,7 +38,7 @@ package {
         //public var liquid_OutputTest:liquid.OutputTest;
         //public var liquid_FilterTest:liquid.FilterTest;
         public var liquid_TemplateTest:liquid.TemplateTest;
-        //public var liquid_ConditionTest:liquid.ConditionTest;
+        public var liquid_ConditionTest:liquid.ConditionTest;
         //public var liquid_SecurityTest:liquid.SecurityTest;
         //public var liquid_CaptureTest:liquid.CaptureTest;
         public var liquid_VariableTest:liquid.VariableTest;

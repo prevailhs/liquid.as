@@ -1,120 +1,129 @@
-module Liquid
-  # Container for liquid nodes which conveniently wraps decision making logic
-  #
-  # Example:
-  #
-  #   c = Condition.new('1', '==', '1')
-  #   c.evaluate #=> true
-  #
-  class Condition #:nodoc:
-    @@operators = {
-      '==' => lambda { |cond, left, right|  cond.send(:equal_variables, left, right) },
-      '!=' => lambda { |cond, left, right| !cond.send(:equal_variables, left, right) },
-      '<>' => lambda { |cond, left, right| !cond.send(:equal_variables, left, right) },
-      '<'  => :<,
-      '>'  => :>,
-      '>=' => :>=,
-      '<=' => :<=,
-      'contains' => lambda { |cond, left, right| left && right ? left.include?(right) : false }
+package liquid {
+  import flash.utils.getQualifiedClassName;
+
+  import liquid.errors.ArgumentError;
+
+  /**
+   * Container for liquid nodes which conveniently wraps decision making logic
+   *
+   * Example:
+   *
+   *   c = Condition.new('1', '==', '1')
+   *   c.evaluate  *=> true
+   *
+   */
+  public class Condition {
+    // TODO Should this be a Dictionary?
+    private static var _operators:Object = {
+      "==": function(cond:Condition, left:*, right:*):Boolean { return cond.equalVariables(left, right); },
+      "!=": function(cond:Condition, left:*, right:*):Boolean { return !cond.equalVariables(left, right); },
+      "<>": function(cond:Condition, left:*, right:*):Boolean { return !cond.equalVariables(left, right); },
+      // For AS3 just sending the symbol/string '<' doesn't work, so we define explicit functions; see interpretConditions
+      '<': function(cond:Condition, left:*, right:*):Boolean { return left < right; },
+      '>': function(cond:Condition, left:*, right:*):Boolean { return left > right; },
+      '>=': function(cond:Condition, left:*, right:*):Boolean { return left >= right; },
+      '<=': function(cond:Condition, left:*, right:*):Boolean { return left <= right; },
+      'contains': function(cond:Condition, left:*, right:*):Boolean { return left && right ? left.indexOf(right) >= 0 : false; }
     }
 
-    def self.operators
-      @@operators
-    end
+    public static function get operators():Object { return _operators; }
 
-    attr_reader :attachment
-    attr_accessor :left, :operator, :right
+    //attr_reader :attachment
 
-    def initialize(left = nil, operator = nil, right = nil)
-      @left, @operator, @right = left, operator, right
-      @child_relation  = nil
-      @child_condition = nil
-    end
+    private var _left:String;
+    private var _operator:String;
+    private var _right:String;
+    private var _childRelation:String;
+    private var _childCondition:Condition;
 
-    def evaluate(context = Context.new)
-      result = interpret_condition(left, right, operator, context)
+    public function Condition(left:String = null, operator:String = null, right:String = null) {
+      _left = left;
+      _operator = operator;
+      _right = right;
+      _childRelation = null;
+      _childCondition = null;
+    }
 
-      case @child_relation
-      when :or
-        result || @child_condition.evaluate(context)
-      when :and
-        result && @child_condition.evaluate(context)
-      else
-        result
-      end
-    end
+    public function evaluate(context:Context = null):Boolean {
+      if (!context) context = new Context();
 
-    def or(condition)
-      @child_relation, @child_condition = :or, condition
-    end
+      var result:Boolean = interpretCondition(_left, _right, _operator, context);
 
-    def and(condition)
-      @child_relation, @child_condition = :and, condition
-    end
+      switch(_childRelation) {
+        case 'or': {
+          return result || _childCondition.evaluate(context);
+        }
+        case 'and': {
+          return result && _childCondition.evaluate(context);
+        }
+        default: {
+          return result;
+        }
+      }
+    }
 
-    def attach(attachment)
-      @attachment = attachment
-    end
+    public function or(condition:Condition):void {
+      _childRelation = 'or';
+      _childCondition = condition;
+    }
 
-    def else?
-      false
-    end
+    public function and(condition:Condition):void {
+      _childRelation = 'and';
+      _childCondition = condition;
+    }
 
-    def inspect
-      "#<Condition #{[@left, @operator, @right].compact.join(' ')}>"
-    end
+    //def attach(attachment)
+      //@attachment = attachment
+    //end
 
-    private
+    public function get isElse():Boolean { return false; }
 
-    def equal_variables(left, right)
-      if left.is_a?(Symbol)
-        if right.respond_to?(left)
-          return right.send(left.to_s)
-        else
-          return nil
-        end
-      end
+    public function toString():String {
+      // TODO Format this object like toString instead of ruby's inspect
+      return "#<Condition " + Liquid.compact([_left, _operator, _right]).join(' ') + ">";
+    }
 
-      if right.is_a?(Symbol)
-        if left.respond_to?(right)
-          return left.send(right.to_s)
-        else
-          return nil
-        end
-      end
+    private function equalVariables(left:*, right:*):Boolean {
+      //if left.is_a?(Symbol)
+        //if right.respond_to?(left)
+          //return right.send(left.to_s)
+        //else
+          //return nil
+        //end
+      //end
+//
+      //if right.is_a?(Symbol)
+        //if left.respond_to?(right)
+          //return left.send(right.to_s)
+        //else
+          //return nil
+        //end
+      //end
+//
+      return left == right;
+    }
 
-      left == right
-    end
+    private function interpretCondition(left:*, right:*, op:String, context:Context):* {
+      // If the operator is empty this means that the decision statement is just
+      // a single variable. We can just poll this variable from the context and
+      // return this as the result.
+      if (!op) return context.getItem(left);
 
-    def interpret_condition(left, right, op, context)
-      # If the operator is empty this means that the decision statement is just
-      # a single variable. We can just poll this variable from the context and
-      # return this as the result.
-      return context[left] if op == nil
+      left = context.getItem(left);
+      right = context.getItem(right);
 
-      left, right = context[left], context[right]
+      var operation:* = _operators[op];
+      if (!operation) throw new liquid.errors.ArgumentError("Unknown operator " + op);
 
-      operation = self.class.operators[op] || raise(ArgumentError.new("Unknown operator #{op}"))
-
-      if operation.respond_to?(:call)
-        operation.call(self, left, right)
-      elsif left.respond_to?(operation) and right.respond_to?(operation)
-        left.send(operation, right)
-      else
-        nil
-      end
-    end
-  end
-
-
-  class ElseCondition < Condition
-    def else?
-      true
-    end
-
-    def evaluate(context)
-      true
-    end
-  end
-
-end
+      if (operation is Function) {
+        return operation(this, left, right);
+        // NOTE This doesn't work in AS3 for things like '<';
+        // leave here for other custom functions, but above we have explicit functions for those operators
+      } else if (left && operation in left && right && operation in right) {
+        return left[operation](right);
+      } else {
+        return null;
+      }
+    }
+  }
+}
