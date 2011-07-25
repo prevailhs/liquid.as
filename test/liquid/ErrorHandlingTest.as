@@ -1,81 +1,110 @@
-require 'test_helper'
+package liquid  {
 
-class ErrorDrop < Liquid::Drop
-  def standard_error
-    raise Liquid::StandardError, 'standard error'
-  end
+  import asunit.asserts.*;
+  import asunit.framework.IAsync;
+  import flash.display.Sprite;
+  import flash.utils.getDefinitionByName;
+  import flash.utils.getQualifiedClassName;
 
-  def argument_error
-    raise Liquid::ArgumentError, 'argument error'
-  end
+  import support.phs.asserts.*;
 
-  def syntax_error
-    raise Liquid::SyntaxError, 'syntax error'
-  end
+  import liquid.errors.*;
 
-  def exception
-    raise Exception, 'exception'
-  end
+  public class ErrorHandlingTest {
 
-end
+    [Inject]
+    public var async:IAsync;
 
-class ErrorHandlingTest < Test::Unit::TestCase
-  include Liquid
+    [Inject]
+    public var context:Sprite;
 
-  def test_standard_error
-    assert_nothing_raised do
-      template = Liquid::Template.parse( ' {{ errors.standard_error }} '  )
-      assert_equal ' Liquid error: standard error ', template.render('errors' => ErrorDrop.new)
 
-      assert_equal 1, template.errors.size
-      assert_equal StandardError, template.errors.first.class
-    end
-  end
+    [Before]
+    public function setUp():void {
+    }
 
-  def test_syntax
+    [After]
+    public function tearDown():void {
+    }
 
-    assert_nothing_raised do
+    [Test]
+    public function shouldTestStandardError():void {
+      assertDoesNotThrow(function():void {
+        var template:Template = liquid.Template.parse(' {{ errors.standardError }} ');
+        assertEquals(' Liquid error: standard error ', template.render( { 'errors': new ErrorDrop() } ));
 
-      template = Liquid::Template.parse( ' {{ errors.syntax_error }} '  )
-      assert_equal ' Liquid syntax error: syntax error ', template.render('errors' => ErrorDrop.new)
+        assertEquals(1, template.errors.length);
+        assertEquals(liquid.errors.StandardError, getDefinitionByName(getQualifiedClassName(Liquid.first(template.errors))));
+      });
+    }
 
-      assert_equal 1, template.errors.size
-      assert_equal SyntaxError, template.errors.first.class
+    [Test]
+    public function shouldTestSyntax():void {
+      assertDoesNotThrow(function():void {
+        var template:Template = liquid.Template.parse(' {{ errors.syntaxError }} ')
+        assertEquals(' Liquid syntax error: syntax error ', template.render( { 'errors': new ErrorDrop() } ));
 
-    end
-  end
+        assertEquals(1, template.errors.length);
+        assertEquals(liquid.errors.SyntaxError, getDefinitionByName(getQualifiedClassName(Liquid.first(template.errors))));
+      });
+    }
 
-  def test_argument
-    assert_nothing_raised do
+    [Test]
+    public function shouldTestArgument():void {
+      assertDoesNotThrow(function():void {
+        var template:Template = liquid.Template.parse(' {{ errors.argumentError }} ')
+        assertEquals(' Liquid error: argument error ', template.render( { 'errors': new ErrorDrop() } ));
 
-      template = Liquid::Template.parse( ' {{ errors.argument_error }} '  )
-      assert_equal ' Liquid error: argument error ', template.render('errors' => ErrorDrop.new)
+        assertEquals(1, template.errors.length);
+        assertEquals(liquid.errors.ArgumentError, getDefinitionByName(getQualifiedClassName(Liquid.first(template.errors))));
+      });
+    }
 
-      assert_equal 1, template.errors.size
-      assert_equal ArgumentError, template.errors.first.class
-    end
-  end
+    [Test]
+    public function shouldTestMissingEndtagParseTimeError():void {
+      assertThrows(liquid.errors.SyntaxError, function():void {
+        var template:Template = liquid.Template.parse(' {% for a in b %} ... ');
+      });
+    }
 
-  def test_missing_endtag_parse_time_error
-    assert_raise(Liquid::SyntaxError) do
-      template = Liquid::Template.parse(' {% for a in b %} ... ')
-    end
-  end
+// TODO Enable when if is implemented
+/*
+    [Test]
+    public function shouldTestUnrecognizedOperator():void {
+      assertDoesNotThrow(function():void {
+        var template:Template = liquid.Template.parse(' {% if 1 =! 2 %}ok{%   }if %} ')
+        assertEquals(' Liquid error: Unknown operator =! ', template.render());
+        assertEquals(1, template.errors.length);
+        assertEquals(liquid.errors.ArgumentError, getDefinitionByName(getQualifiedClassName(Liquid.first(template.errors))));
+      });
+    }
+*/
 
-  def test_unrecognized_operator
-    assert_nothing_raised do
-      template = Liquid::Template.parse(' {% if 1 =! 2 %}ok{% endif %} ')
-      assert_equal ' Liquid error: Unknown operator =! ', template.render
-      assert_equal 1, template.errors.size
-      assert_equal Liquid::ArgumentError, template.errors.first.class
-    end
-  end
+    // Liquid should not catch Errors that are not subclasses of LiquidError, like Interrupt and NoMemoryError
+    [Test]
+    public function shouldTestExceptionsPropagate():void {
+      assertThrows(Error, function():void {
+        var template:Template = liquid.Template.parse(' {{ errors.error }} ');
+        template.render( { 'errors': new ErrorDrop() } );
+      });
+    }
+  }
+}
 
-  # Liquid should not catch Exceptions that are not subclasses of StandardError, like Interrupt and NoMemoryError
-  def test_exceptions_propagate
-    assert_raise Exception do
-      template = Liquid::Template.parse( ' {{ errors.exception }} '  )
-      template.render('errors' => ErrorDrop.new)
-    end
-  end
-end # ErrorHandlingTest
+class ErrorDrop extends liquid.Drop {
+  public function get standardError():liquid.errors.StandardError {
+    throw new liquid.errors.StandardError('standard error');
+  }
+
+  public function get argumentError():liquid.errors.ArgumentError {
+    throw new liquid.errors.ArgumentError('argument error');
+  }
+
+  public function get syntaxError():liquid.errors.SyntaxError {
+    throw new liquid.errors.SyntaxError('syntax error');
+  }
+
+  public function get error():Error {
+    throw new Error('error');
+  }
+}

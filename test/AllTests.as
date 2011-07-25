@@ -17,7 +17,7 @@ package {
     import liquid.BlockTest;
     //import liquid.FileSystemTest;
     //import liquid.IncludeTagTest;
-    //import liquid.ErrorHandlingTest;
+    import liquid.ErrorHandlingTest;
     import liquid.RegExpTest;
     import liquid.StrainerTest;
     //import liquid.ParsingQuirksTest;
@@ -45,7 +45,7 @@ package {
         public var liquid_BlockTest:liquid.BlockTest;
         //public var liquid_FileSystemTest:liquid.FileSystemTest;
         //public var liquid_IncludeTagTest:liquid.IncludeTagTest;
-        //public var liquid_ErrorHandlingTest:liquid.ErrorHandlingTest;
+        public var liquid_ErrorHandlingTest:liquid.ErrorHandlingTest;
         public var liquid_RegExpTest:liquid.RegExpTest;
         public var liquid_StrainerTest:liquid.StrainerTest;
         //public var liquid_ParsingQuirksTest:liquid.ParsingQuirksTest;

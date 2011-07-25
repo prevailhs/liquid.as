@@ -69,7 +69,7 @@ package liquid {
       errors.push(e);
       if (_rethrowErrors) throw e;
 
-      if (e is SyntaxError) {
+      if (e is liquid.errors.SyntaxError) {
         return "Liquid syntax error: " + e.message;
       } else {
         return "Liquid error: " + e.message;

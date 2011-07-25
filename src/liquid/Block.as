@@ -1,4 +1,5 @@
 package liquid {
+  import liquid.errors.LiquidError;
   import liquid.errors.SyntaxError;
 
   public class Block extends Tag {
@@ -111,7 +112,7 @@ package liquid {
       return list.map(function(token:*, index:int, array:Array):Object {
         try {
           return ('render' in token) ? token.render(context) : token;
-        } catch (e:Error) {
+        } catch (e:liquid.errors.LiquidError) {
           return context.handleError(e);
         }
         return 'ASSERT: Should not get here';
