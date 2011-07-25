@@ -19,8 +19,7 @@ package liquid {
     }
 
     public function get name():String {
-      // FIXME Downcase this
-      return getQualifiedClassName(this);
+      return getQualifiedClassName(this).toLowerCase();
     }
 
     public function render(context:Context):* {

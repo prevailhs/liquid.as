@@ -19,22 +19,23 @@ package liquid {
       "!=": function(cond:Condition, left:*, right:*):Boolean { return !cond.equalVariables(left, right); },
       "<>": function(cond:Condition, left:*, right:*):Boolean { return !cond.equalVariables(left, right); },
       // For AS3 just sending the symbol/string '<' doesn't work, so we define explicit functions; see interpretConditions
-      '<': function(cond:Condition, left:*, right:*):Boolean { return left < right; },
-      '>': function(cond:Condition, left:*, right:*):Boolean { return left > right; },
-      '>=': function(cond:Condition, left:*, right:*):Boolean { return left >= right; },
-      '<=': function(cond:Condition, left:*, right:*):Boolean { return left <= right; },
+      '<': function(cond:Condition, left:*, right:*):Boolean { return (left == null || right == null) ? false : left < right; },
+      '>': function(cond:Condition, left:*, right:*):Boolean { return (left == null || right == null) ? false : left > right; },
+      '>=': function(cond:Condition, left:*, right:*):Boolean { return (left == null || right == null) ? false : left >= right; },
+      '<=': function(cond:Condition, left:*, right:*):Boolean { return (left == null || right == null) ? false : left <= right; },
       'contains': function(cond:Condition, left:*, right:*):Boolean { return left && right ? left.indexOf(right) >= 0 : false; }
     }
 
     public static function get operators():Object { return _operators; }
-
-    //attr_reader :attachment
 
     private var _left:String;
     private var _operator:String;
     private var _right:String;
     private var _childRelation:String;
     private var _childCondition:Condition;
+    private var _attachment:Array;
+
+    public function get attachment():Array { return _attachment; }
 
     public function Condition(left:String = null, operator:String = null, right:String = null) {
       _left = left;
@@ -72,9 +73,10 @@ package liquid {
       _childCondition = condition;
     }
 
-    //def attach(attachment)
-      //@attachment = attachment
-    //end
+    public function attach(attachment:Array):Array {
+      _attachment = attachment;
+      return _attachment
+    }
 
     public function get isElse():Boolean { return false; }
 
@@ -84,27 +86,23 @@ package liquid {
     }
 
     private function equalVariables(left:*, right:*):Boolean {
-      //if left.is_a?(Symbol)
-        //if right.respond_to?(left)
-          //return right.send(left.to_s)
-        //else
-          //return nil
-        //end
-      //end
-//
-      //if right.is_a?(Symbol)
-        //if left.respond_to?(right)
-          //return left.send(right.to_s)
-        //else
-          //return nil
-        //end
-      //end
-//
+
+      // Check if we're a function to apply, like empty
+      // NOTE This replaces symbols for ruby, see Context::LITERALS
+      if (left is Function) {
+        return left.call(this, right);
+      }
+
+      if (right is Function) {
+        return right.call(this, left);
+      }
+
       return left == right;
     }
 
     private function interpretCondition(left:*, right:*, op:String, context:Context):* {
-      // If the operator is empty this means that the decision statement is just
+      // If the operator is empty this means that the decision statement is 
+      // just
       // a single variable. We can just poll this variable from the context and
       // return this as the result.
       if (!op) return context.getItem(left);

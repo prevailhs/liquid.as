@@ -1,160 +1,204 @@
-require 'test_helper'
+package liquid.tags  {
 
-class IfElseTest < Test::Unit::TestCase
-  include Liquid
+  import asunit.asserts.*;
+  import asunit.framework.IAsync;
+  import flash.display.Sprite;
 
-  def test_if
-    assert_template_result('  ',' {% if false %} this text should not go into the output {% endif %} ')
-    assert_template_result('  this text should go into the output  ',
-                           ' {% if true %} this text should go into the output {% endif %} ')
-    assert_template_result('  you rock ?','{% if false %} you suck {% endif %} {% if true %} you rock {% endif %}?')
-  end
+  import support.phs.asserts.*;
 
-  def test_if_else
-    assert_template_result(' YES ','{% if false %} NO {% else %} YES {% endif %}')
-    assert_template_result(' YES ','{% if true %} YES {% else %} NO {% endif %}')
-    assert_template_result(' YES ','{% if "foo" %} YES {% else %} NO {% endif %}')
-  end
+  import liquid.Condition;
+  import liquid.errors.SyntaxError;
+  
+  public class IfElseTest {
 
-  def test_if_boolean
-    assert_template_result(' YES ','{% if var %} YES {% endif %}', 'var' => true)
-  end
+    [Inject]
+    public var async:IAsync;
 
-  def test_if_or
-    assert_template_result(' YES ','{% if a or b %} YES {% endif %}', 'a' => true, 'b' => true)
-    assert_template_result(' YES ','{% if a or b %} YES {% endif %}', 'a' => true, 'b' => false)
-    assert_template_result(' YES ','{% if a or b %} YES {% endif %}', 'a' => false, 'b' => true)
-    assert_template_result('',     '{% if a or b %} YES {% endif %}', 'a' => false, 'b' => false)
-
-    assert_template_result(' YES ','{% if a or b or c %} YES {% endif %}', 'a' => false, 'b' => false, 'c' => true)
-    assert_template_result('',     '{% if a or b or c %} YES {% endif %}', 'a' => false, 'b' => false, 'c' => false)
-  end
-
-  def test_if_or_with_operators
-    assert_template_result(' YES ','{% if a == true or b == true %} YES {% endif %}', 'a' => true, 'b' => true)
-    assert_template_result(' YES ','{% if a == true or b == false %} YES {% endif %}', 'a' => true, 'b' => true)
-    assert_template_result('','{% if a == false or b == false %} YES {% endif %}', 'a' => true, 'b' => true)
-  end
-
-  def test_comparison_of_strings_containing_and_or_or
-    assert_nothing_raised do
-      awful_markup = "a == 'and' and b == 'or' and c == 'foo and bar' and d == 'bar or baz' and e == 'foo' and foo and bar"
-      assigns = {'a' => 'and', 'b' => 'or', 'c' => 'foo and bar', 'd' => 'bar or baz', 'e' => 'foo', 'foo' => true, 'bar' => true}
-      assert_template_result(' YES ',"{% if #{awful_markup} %} YES {% endif %}", assigns)
-    end
-  end
-
-  def test_comparison_of_expressions_starting_with_and_or_or
-    assigns = {'order' => {'items_count' => 0}, 'android' => {'name' => 'Roy'}}
-    assert_nothing_raised do
-      assert_template_result( "YES",
-                              "{% if android.name == 'Roy' %}YES{% endif %}",
-                              assigns)
-    end
-    assert_nothing_raised do
-      assert_template_result( "YES",
-                              "{% if order.items_count == 0 %}YES{% endif %}",
-                              assigns)
-    end
-  end
-
-  def test_if_and
-    assert_template_result(' YES ','{% if true and true %} YES {% endif %}')
-    assert_template_result('','{% if false and true %} YES {% endif %}')
-    assert_template_result('','{% if false and true %} YES {% endif %}')
-  end
+    [Inject]
+    public var context:Sprite;
 
 
-  def test_hash_miss_generates_false
-    assert_template_result('','{% if foo.bar %} NO {% endif %}', 'foo' => {})
-  end
+    [Before]
+    public function setUp():void {
+    }
 
-  def test_if_from_variable
-    assert_template_result('','{% if var %} NO {% endif %}', 'var' => false)
-    assert_template_result('','{% if var %} NO {% endif %}', 'var' => nil)
-    assert_template_result('','{% if foo.bar %} NO {% endif %}', 'foo' => {'bar' => false})
-    assert_template_result('','{% if foo.bar %} NO {% endif %}', 'foo' => {})
-    assert_template_result('','{% if foo.bar %} NO {% endif %}', 'foo' => nil)
-    assert_template_result('','{% if foo.bar %} NO {% endif %}', 'foo' => true)
+    [After]
+    public function tearDown():void {
+    }
 
-    assert_template_result(' YES ','{% if var %} YES {% endif %}', 'var' => "text")
-    assert_template_result(' YES ','{% if var %} YES {% endif %}', 'var' => true)
-    assert_template_result(' YES ','{% if var %} YES {% endif %}', 'var' => 1)
-    assert_template_result(' YES ','{% if var %} YES {% endif %}', 'var' => {})
-    assert_template_result(' YES ','{% if var %} YES {% endif %}', 'var' => [])
-    assert_template_result(' YES ','{% if "foo" %} YES {% endif %}')
-    assert_template_result(' YES ','{% if foo.bar %} YES {% endif %}', 'foo' => {'bar' => true})
-    assert_template_result(' YES ','{% if foo.bar %} YES {% endif %}', 'foo' => {'bar' => "text"})
-    assert_template_result(' YES ','{% if foo.bar %} YES {% endif %}', 'foo' => {'bar' => 1 })
-    assert_template_result(' YES ','{% if foo.bar %} YES {% endif %}', 'foo' => {'bar' => {} })
-    assert_template_result(' YES ','{% if foo.bar %} YES {% endif %}', 'foo' => {'bar' => [] })
+    [Test]
+    public function shouldTestIf():void {
+      assertTemplateResult('  ', ' {% if false %} this text should not go into the output {% endif %} ');
+      assertTemplateResult('  this text should go into the output  ',
+                           ' {% if true %} this text should go into the output {% endif %} ');
+      assertTemplateResult('  you rock ?', '{% if false %} you suck {% endif %} {% if true %} you rock {% endif %}?');
+    }
 
-    assert_template_result(' YES ','{% if var %} NO {% else %} YES {% endif %}', 'var' => false)
-    assert_template_result(' YES ','{% if var %} NO {% else %} YES {% endif %}', 'var' => nil)
-    assert_template_result(' YES ','{% if var %} YES {% else %} NO {% endif %}', 'var' => true)
-    assert_template_result(' YES ','{% if "foo" %} YES {% else %} NO {% endif %}', 'var' => "text")
+    [Test]
+    public function shouldTestIfElse():void {
+      assertTemplateResult(' YES ', '{% if false %} NO {% else %} YES {% endif %}');
+      assertTemplateResult(' YES ', '{% if true %} YES {% else %} NO {% endif %}');
+      assertTemplateResult(' YES ', '{% if "foo" %} YES {% else %} NO {% endif %}');
+    }
 
-    assert_template_result(' YES ','{% if foo.bar %} NO {% else %} YES {% endif %}', 'foo' => {'bar' => false})
-    assert_template_result(' YES ','{% if foo.bar %} YES {% else %} NO {% endif %}', 'foo' => {'bar' => true})
-    assert_template_result(' YES ','{% if foo.bar %} YES {% else %} NO {% endif %}', 'foo' => {'bar' => "text"})
-    assert_template_result(' YES ','{% if foo.bar %} NO {% else %} YES {% endif %}', 'foo' => {'notbar' => true})
-    assert_template_result(' YES ','{% if foo.bar %} NO {% else %} YES {% endif %}', 'foo' => {})
-    assert_template_result(' YES ','{% if foo.bar %} NO {% else %} YES {% endif %}', 'notfoo' => {'bar' => true})
-  end
+    [Test]
+    public function shouldTestIfBoolean():void {
+      assertTemplateResult(' YES ', '{% if var %} YES {% endif %}', {'var': true});
+    }
 
-  def test_nested_if
-    assert_template_result('', '{% if false %}{% if false %} NO {% endif %}{% endif %}')
-    assert_template_result('', '{% if false %}{% if true %} NO {% endif %}{% endif %}')
-    assert_template_result('', '{% if true %}{% if false %} NO {% endif %}{% endif %}')
-    assert_template_result(' YES ', '{% if true %}{% if true %} YES {% endif %}{% endif %}')
+    [Test]
+    public function shouldTestIfOr():void {
+      assertTemplateResult(' YES ', '{% if a or b %} YES {% endif %}', {'a': true, 'b': true});
+      assertTemplateResult(' YES ', '{% if a or b %} YES {% endif %}', {'a': true, 'b': false});
+      assertTemplateResult(' YES ', '{% if a or b %} YES {% endif %}', {'a': false, 'b': true});
+      assertTemplateResult('',     '{% if a or b %} YES {% endif %}', {'a': false, 'b': false});
 
-    assert_template_result(' YES ', '{% if true %}{% if true %} YES {% else %} NO {% endif %}{% else %} NO {% endif %}')
-    assert_template_result(' YES ', '{% if true %}{% if false %} NO {% else %} YES {% endif %}{% else %} NO {% endif %}')
-    assert_template_result(' YES ', '{% if false %}{% if true %} NO {% else %} NONO {% endif %}{% else %} YES {% endif %}')
+      assertTemplateResult(' YES ', '{% if a or b or c %} YES {% endif %}', {'a': false, 'b': false, 'c': true});
+      assertTemplateResult('',     '{% if a or b or c %} YES {% endif %}', {'a': false, 'b': false, 'c': false});
+    }
 
-  end
+    [Test]
+    public function shouldTestIfOrWithOperators():void {
+      assertTemplateResult(' YES ', '{% if a == true or b == true %} YES {% endif %}', {'a': true, 'b': true});
+      assertTemplateResult(' YES ', '{% if a == true or b == false %} YES {% endif %}', {'a': true, 'b': true});
+      assertTemplateResult('', '{% if a == false or b == false %} YES {% endif %}', {'a': true, 'b': true});
+    }
 
-  def test_comparisons_on_null
-    assert_template_result('','{% if null < 10 %} NO {% endif %}')
-    assert_template_result('','{% if null <= 10 %} NO {% endif %}')
-    assert_template_result('','{% if null >= 10 %} NO {% endif %}')
-    assert_template_result('','{% if null > 10 %} NO {% endif %}')
+    [Test]
+    public function shouldTestComparsionOfStringsContainingAndOrOr():void {
+      var awfulMarkup:String = "a == 'and' and b == 'or' and c == 'foo and bar' and d == 'bar or baz' and e == 'foo' and foo and bar";
+      var assigns:Object = {'a': 'and', 'b': 'or', 'c': 'foo and bar', 'd': 'bar or baz', 'e': 'foo', 'foo': true, 'bar': true};
+      assertTemplateResult(' YES ', "{% if " + awfulMarkup + " %} YES {% endif %}", assigns);
+    }
 
-    assert_template_result('','{% if 10 < null %} NO {% endif %}')
-    assert_template_result('','{% if 10 <= null %} NO {% endif %}')
-    assert_template_result('','{% if 10 >= null %} NO {% endif %}')
-    assert_template_result('','{% if 10 > null %} NO {% endif %}')
-  end
+    [Test]
+    public function shouldTestComparisonOfExpressionStartingWithAndOrOr():void {
+      var assigns:Object = {'order': {'items_count': 0}, 'android': {'name': 'Roy'}};
+      assertDoesNotThrow(function():void {
+        assertTemplateResult( "YES", "{% if android.name == 'Roy' %}YES{% endif %}", assigns);
+      });
+      assertDoesNotThrow(function():void {
+        assertTemplateResult( "YES", "{% if order.items_count == 0 %}YES{% endif %}", assigns);
+      });
+    }
 
-  def test_else_if
-    assert_template_result('0','{% if 0 == 0 %}0{% elsif 1 == 1%}1{% else %}2{% endif %}')
-    assert_template_result('1','{% if 0 != 0 %}0{% elsif 1 == 1%}1{% else %}2{% endif %}')
-    assert_template_result('2','{% if 0 != 0 %}0{% elsif 1 != 1%}1{% else %}2{% endif %}')
+    [Test]
+    public function shouldTestIfAnd():void {
+      assertTemplateResult(' YES ', '{% if true and true %} YES {% endif %}');
+      assertTemplateResult('', '{% if false and true %} YES {% endif %}');
+      assertTemplateResult('', '{% if false and true %} YES {% endif %}');
+    }
 
-    assert_template_result('elsif','{% if false %}if{% elsif true %}elsif{% endif %}')
-  end
 
-  def test_syntax_error_no_variable
-    assert_raise(SyntaxError){ assert_template_result('', '{% if jerry == 1 %}')}
-  end
+    [Test]
+    public function shouldTestHashMissGeneratesFalse():void {
+      assertTemplateResult('', '{% if foo.bar %} NO {% endif %}', {'foo': {}});
+    }
 
-  def test_syntax_error_no_expression
-    assert_raise(SyntaxError) { assert_template_result('', '{% if %}') }
-  end
+    [Test]
+    public function shouldTestIfFromVariable():void {
+      assertTemplateResult('', '{% if var %} NO {% endif %}', {'var': false});
+      assertTemplateResult('', '{% if var %} NO {% endif %}', {'var': null});
+      assertTemplateResult('', '{% if foo.bar %} NO {% endif %}', {'foo': {'bar': false}});
+      assertTemplateResult('', '{% if foo.bar %} NO {% endif %}', {'foo': {}});
+      assertTemplateResult('', '{% if foo.bar %} NO {% endif %}', {'foo': null});
+      assertTemplateResult('', '{% if foo.bar %} NO {% endif %}', {'foo': true});
 
-  def test_if_with_custom_condition
-    Condition.operators['contains'] = :[]
+      assertTemplateResult(' YES ', '{% if var %} YES {% endif %}', {'var': "text"});
+      assertTemplateResult(' YES ', '{% if var %} YES {% endif %}', {'var': true});
+      assertTemplateResult(' YES ', '{% if var %} YES {% endif %}', {'var': 1});
+      assertTemplateResult(' YES ', '{% if var %} YES {% endif %}', {'var': {}});
+      assertTemplateResult(' YES ', '{% if var %} YES {% endif %}', {'var': []});
+      assertTemplateResult(' YES ', '{% if "foo" %} YES {% endif %}');
+      assertTemplateResult(' YES ', '{% if foo.bar %} YES {% endif %}', {'foo': {'bar': true}});
+      assertTemplateResult(' YES ', '{% if foo.bar %} YES {% endif %}', {'foo': {'bar': "text"}});
+      assertTemplateResult(' YES ', '{% if foo.bar %} YES {% endif %}', {'foo': {'bar': 1 }});
+      assertTemplateResult(' YES ', '{% if foo.bar %} YES {% endif %}', {'foo': {'bar': {} }});
+      assertTemplateResult(' YES ', '{% if foo.bar %} YES {% endif %}', {'foo': {'bar': [] }});
 
-    assert_template_result('yes', %({% if 'bob' contains 'o' %}yes{% endif %}))
-    assert_template_result('no', %({% if 'bob' contains 'f' %}yes{% else %}no{% endif %}))
-  ensure
-    Condition.operators.delete 'contains'
-  end
+      assertTemplateResult(' YES ', '{% if var %} NO {% else %} YES {% endif %}', {'var': false});
+      assertTemplateResult(' YES ', '{% if var %} NO {% else %} YES {% endif %}', {'var': null});
+      assertTemplateResult(' YES ', '{% if var %} YES {% else %} NO {% endif %}', {'var': true});
+      assertTemplateResult(' YES ', '{% if "foo" %} YES {% else %} NO {% endif %}', {'var': "text"});
 
-  def test_operators_are_ignored_unless_isolated
-    Condition.operators['contains'] = :[]
+      assertTemplateResult(' YES ', '{% if foo.bar %} NO {% else %} YES {% endif %}', {'foo': {'bar': false}});
+      assertTemplateResult(' YES ', '{% if foo.bar %} YES {% else %} NO {% endif %}', {'foo': {'bar': true}});
+      assertTemplateResult(' YES ', '{% if foo.bar %} YES {% else %} NO {% endif %}', {'foo': {'bar': "text"}});
+      assertTemplateResult(' YES ', '{% if foo.bar %} NO {% else %} YES {% endif %}', {'foo': {'notbar': true}});
+      assertTemplateResult(' YES ', '{% if foo.bar %} NO {% else %} YES {% endif %}', {'foo': {}});
+      assertTemplateResult(' YES ', '{% if foo.bar %} NO {% else %} YES {% endif %}', {'notfoo': {'bar': true}});
+    }
 
-    assert_template_result('yes',
-                           %({% if 'gnomeslab-and-or-liquid' contains 'gnomeslab-and-or-liquid' %}yes{% endif %}))
-  end
-end # IfElseTest
+    [Test]
+    public function shouldTestNestedIf():void {
+      assertTemplateResult('', '{% if false %}{% if false %} NO {% endif %}{% endif %}');
+      assertTemplateResult('', '{% if false %}{% if true %} NO {% endif %}{% endif %}');
+      assertTemplateResult('', '{% if true %}{% if false %} NO {% endif %}{% endif %}');
+      assertTemplateResult(' YES ', '{% if true %}{% if true %} YES {% endif %}{% endif %}');
+
+      assertTemplateResult(' YES ', '{% if true %}{% if true %} YES {% else %} NO {% endif %}{% else %} NO {% endif %}');
+      assertTemplateResult(' YES ', '{% if true %}{% if false %} NO {% else %} YES {% endif %}{% else %} NO {% endif %}');
+      assertTemplateResult(' YES ', '{% if false %}{% if true %} NO {% else %} NONO {% endif %}{% else %} YES {% endif %}');
+
+    }
+
+    [Test]
+    public function shouldTestComparisonsOnNull():void {
+      assertTemplateResult('', '{% if null < 10 %} NO {% endif %}');
+      assertTemplateResult('', '{% if null <= 10 %} NO {% endif %}');
+      assertTemplateResult('', '{% if null >= 10 %} NO {% endif %}');
+      assertTemplateResult('', '{% if null > 10 %} NO {% endif %}');
+
+      assertTemplateResult('', '{% if 10 < null %} NO {% endif %}');
+      assertTemplateResult('', '{% if 10 <= null %} NO {% endif %}');
+      assertTemplateResult('', '{% if 10 >= null %} NO {% endif %}');
+      assertTemplateResult('', '{% if 10 > null %} NO {% endif %}');
+    }
+
+    [Test]
+    public function shouldTestElseIf():void {
+      assertTemplateResult('0', '{% if 0 == 0 %}0{% elsif 1 == 1%}1{% else %}2{% endif %}');
+      assertTemplateResult('1', '{% if 0 != 0 %}0{% elsif 1 == 1%}1{% else %}2{% endif %}');
+      assertTemplateResult('2', '{% if 0 != 0 %}0{% elsif 1 != 1%}1{% else %}2{% endif %}');
+
+      assertTemplateResult('elsif', '{% if false %}if{% elsif true %}elsif{% endif %}');
+    }
+
+    [Test]
+    public function shouldTestSyntaxErrorNoVariable():void {
+      assertThrows(liquid.errors.SyntaxError, function():void { assertTemplateResult('', '{% if jerry == 1 %}'); });
+    }
+
+    [Test]
+    public function shouldTestSyntaxErrorNoExpression():void {
+      assertThrows(liquid.errors.SyntaxError, function():void { assertTemplateResult('', '{% if %}'); });
+    }
+
+    [Test]
+    public function shouldTestIfWithCustomCondition():void {
+      Condition.operators['contains'] = function(cond:Condition, left:*, right:*):Boolean {
+        if (left is String || left is Array) return left.indexOf(right) >= 0;
+        if ('contains' in left) return left.contains(right);
+        return false;
+      }
+
+      try {
+        assertTemplateResult('yes', "{% if 'bob' contains 'o' %}yes{% endif %}");
+        assertTemplateResult('no', "{% if 'bob' contains 'f' %}yes{% else %}no{% endif %}");
+      } finally {
+        delete Condition.operators['contains'];
+      }
+    }
+
+    [Test]
+    public function shouldTestOperatorsAreIgnoredUnlessIsolated():void {
+      Condition.operators['contains'] = function(cond:Condition, left:*, right:*):Boolean {
+        if (left is String || left is Array) return left.indexOf(right) >= 0;
+        if ('contains' in left) return left.contains(right);
+        return false;
+      }
+
+      assertTemplateResult('yes', "{% if 'gnomeslab-and-or-liquid' contains 'gnomeslab-and-or-liquid' %}yes{% endif %}");
+    }
+  }
+}

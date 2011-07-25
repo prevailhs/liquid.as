@@ -1,4 +1,6 @@
 package liquid {
+  import flash.utils.getQualifiedClassName;
+
   import liquid.errors.LiquidError;
   import liquid.errors.SyntaxError;
 
@@ -18,7 +20,11 @@ package liquid {
     }
 
     override public function parse(tokens:Array):void {
-      _nodelist = [];
+      // NOTE Don't just blindly re-initialize nodelist; inherited classes may 
+      // share this through pointers; specifically If points _nodelist at the 
+      // blocks attachment, so we need to leave that pointer to pickup stuff.
+      if (!_nodelist) _nodelist = [];
+      Liquid.clear(_nodelist);
 
       while (tokens.length > 0) {
         var token:String = tokens.shift();
@@ -63,7 +69,7 @@ package liquid {
     public function endTag():void {
     }
 
-    public function unknownTag(tag:String, params:*, tokens:Array):void {
+    public function unknownTag(tag:String, markup:String, tokens:Array):void {
       switch(tag) {
         case 'else': {
           throw new liquid.errors.SyntaxError(blockName + "tag does not expect else tag");

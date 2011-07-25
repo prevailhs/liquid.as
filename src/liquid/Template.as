@@ -1,5 +1,6 @@
 package liquid {
   import liquid.errors.ArgumentError;
+  import liquid.tags.*;
 
   /**
    * Templates are central to liquid.
@@ -64,7 +65,14 @@ package liquid {
 
     public function get root():Document { return _root; }
 
+    private static var _tagsInitialized:Boolean = false;
+
     public function Template() {
+      if (!_tagsInitialized) {
+        //trace('Registering tags');
+        Template.registerTag('assign', liquid.tags.Assign);
+        Template.registerTag('if', liquid.tags.If);
+      }
     }
 
     /**

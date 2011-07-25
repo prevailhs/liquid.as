@@ -134,6 +134,12 @@ package {
       return (arr.length > 0) ? arr[arr.length-1] : null;
     }
 
+    // TODO Belongs on Array
+    public static function clear(arr:Array):void {
+      //while (arr.length > 0) arr.pop();
+      arr.length = 0;
+    }
+
     // TODO Belongs on Object
     public static function merge(obj1:Object, obj2:Object):Object {
       var obj:Object = { };
@@ -170,13 +176,9 @@ package {
     }
   }
 
-  //trace('Registering tags');
-  Template.registerTag('assign', Assign);
-
   // TODO Would like to do something like this for all these helper functions
 //  String.prototype.scan = function(pattern:*):Array {
 //      var patternString:String = (pattern is RegExp) ? (pattern as RegExp).source : pattern;
 //      return this.match(new RegExp(patternString, "g"));
 //  }
 }
-

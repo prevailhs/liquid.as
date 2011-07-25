@@ -109,21 +109,26 @@ package liquid {
       return _scopes.shift();
     }
 
-    //# Pushes a new local scope on the stack, pops it at the end of the block
-    //#
-    //# Example:
-    //#   context.stack do
-    //#      context['var'] = 'hi'
-    //#   end
-    //#
-    //#   context['var]  #=> nil
-    //def stack(new_scope={})
-      //push(new_scope)
-      //yield
-    //ensure
-      //pop
-    //end
-//
+    /**
+     * Pushes a new local scope on the stack, pops it at the end of the block
+     *
+     * Example:
+     *   context.stack do
+     *      context['var'] = 'hi'
+     *   end
+     *
+     *   context['var]  #=> nil
+     */
+    public function stack(newScope:Object, f:Function):* {
+      if (!newScope) newScope = { };
+      try {
+        push(newScope);
+        return f.call();
+      } finally {
+        pop();
+      }
+    }
+
     //def clear_instance_assigns
       //@scopes[0] = {}
     //end
@@ -145,11 +150,19 @@ package liquid {
       //null: null, // TODO Is this one necessary?
       'nil': null, 'null': null, '': null,
       'true': true,
-      'false': false
-      // TODO Support symbols, perhaps with a custom Symbol class
-      //,
-      //'blank': 'blank',
-      //'empty': 'empty'
+      'false': false,
+      'blank': function(other:*):Boolean { 
+        if (other is Array) return other.length == 0;
+        if (other is String) return !other || other == '';
+        if ('blank' in other) return other.blank();
+        return false;
+      },
+      'empty': function(other:*):Boolean {
+        if (other is Array) return other.length == 0;
+        if (other is String) return !other || other == '';
+        if ('empty' in other) return other.empty();
+        return false;
+      }
     }
 
       /**
