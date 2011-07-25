@@ -1,4 +1,7 @@
 package liquid {
+  import flash.utils.describeType;
+  import flash.utils.getQualifiedClassName;
+
   import liquid.errors.ArgumentError;
 
   /**
@@ -40,9 +43,31 @@ package liquid {
     }
 
 
-    public function extend(f:Object):void {
-      for (var k:String in f) {
-        this[k] = f[k];
+    /**
+     * Extends the strainer with the class or object;
+     * if a class is provided it makes public static functions available;
+     * if an ojbect is provied it makes any properties that are functions available.
+     *
+     * @param	klassOrObject
+     */
+    public function extend(klassOrObject:*):void {
+      if (klassOrObject is Class) {
+        //trace('Extending static methods in class: ', klassOrObject);
+        var classInfo:XML = describeType(klassOrObject);
+        // TODO How to filter just static methods?
+        for each (var m:XML in classInfo..method) {
+          var name:String = m.@name.toString();
+          this[name] = klassOrObject[name];
+          //trace(' ... added:', name);
+        }
+      } else if (klassOrObject is Object) {
+        //trace('Extending properties in object; ', klassOrObject);
+        for (var k:String in klassOrObject) {
+          this[k] = klassOrObject[k];
+          //trace(' ... added:', k);
+        }
+      } else {
+        throw new liquid.errors.ArgumentError("Unsupported extension type: " + getQualifiedClassName(klassOrObject));
       }
     }
 

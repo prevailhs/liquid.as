@@ -1,52 +1,88 @@
-require 'test_helper'
+package liquid  {
 
-class ParsingQuirksTest < Test::Unit::TestCase
-  include Liquid
+  import asunit.asserts.*;
+  import asunit.framework.IAsync;
+  import flash.display.Sprite;
 
-  def test_error_with_css
-    text = %| div { font-weight: bold; } |
-    template = Template.parse(text)
+  import support.phs.asserts.*;
+  import liquid.Template;
+  import liquid.errors.SyntaxError;
 
-    assert_equal text, template.render
-    assert_equal [String], template.root.nodelist.collect {|i| i.class}
-  end
+  public class ParsingQuirksTest {
 
-  def test_raise_on_single_close_bracet
-    assert_raise(SyntaxError) do
-      Template.parse("text {{method} oh nos!")
-    end
-  end
+    [Inject]
+    public var async:IAsync;
 
-  def test_raise_on_label_and_no_close_bracets
-    assert_raise(SyntaxError) do
-      Template.parse("TEST {{ ")
-    end
-  end
+    [Inject]
+    public var context:Sprite;
 
-  def test_raise_on_label_and_no_close_bracets_percent
-    assert_raise(SyntaxError) do
-      Template.parse("TEST {% ")
-    end
-  end
+    [Before]
+    public function setUp():void {
+    }
 
-  def test_error_on_empty_filter
-    assert_nothing_raised do
-      Template.parse("{{test |a|b|}}")
-      Template.parse("{{test}}")
-      Template.parse("{{|test|}}")
-    end
-  end
+    [After]
+    public function tearDown():void {
+    }
 
-  def test_meaningless_parens
-    assigns = {'b' => 'bar', 'c' => 'baz'}
-    markup = "a == 'foo' or (b == 'bar' and c == 'baz') or false"
-    assert_template_result(' YES ',"{% if #{markup} %} YES {% endif %}", assigns)
-  end
 
-  def test_unexpected_characters_silently_eat_logic
-    markup = "true && false"
-    assert_template_result(' YES ',"{% if #{markup} %} YES {% endif %}")
-    markup = "false || true"
-    assert_template_result('',"{% if #{markup} %} YES {% endif %}")
-  end
-end # ParsingQuirksTest
+    [Test]
+    public function shouldTestErrorWithCss():void {
+      var text:String = " div { font-weight: bold; } ";
+      var template:Template = Template.parse(text);
+
+      assertEquals(text, template.render());
+      assertEqualsNestedArrays([String], template.root.nodelist.map(function(item:*, index:int, arr:Array):Class {
+        return Liquid.getClass(item);
+      }));
+    }
+
+    [Test]
+    public function shouldTestRaiseOnSingleCloseBracket():void {
+      assertThrows(liquid.errors.SyntaxError, function():void {
+        Template.parse("text {{method} oh nos!");
+      });
+    }
+
+    [Test]
+    public function shouldTestRaiseOnLabelAndNoCloseBrackets():void {
+      assertThrows(liquid.errors.SyntaxError, function():void {
+        Template.parse("TEST {{ ");
+      });
+    }
+
+    [Test]
+    public function shouldTestRaiseOnLabelAndNoCloseBracketsPercent():void {
+      assertThrows(liquid.errors.SyntaxError, function():void {
+        Template.parse("TEST {% ");
+      });
+    }
+
+    [Test]
+    public function shouldTestErrorOnEmptyFilter():void {
+      assertDoesNotThrow(function():void {
+        Template.parse("{{test |a|b|}}");
+        Template.parse("{{test}}");
+        Template.parse("{{|test|}}");
+      });
+    }
+
+// TODO Enable when If tag is implemented
+/*
+    [Test]
+    public function shouldTestMeaninglessParens():void {
+      var assigns:Object = { 'b': 'bar', 'c': 'baz' };
+      var markup:String = "a == 'foo' or (b == 'bar' and c == 'baz') or false";
+      assertTemplateResult(' YES ', "{% if #{markup} %} YES {% endif %}", assigns);
+    }
+
+    [Test]
+    public function shouldTestUnexpectedCharactersSilentlyEatLogic():void {
+      var markup:String;
+      markup = "true && false";
+      assertTemplateResult(' YES ', "{% if #{markup} %} YES {% endif %}");
+      markup = "false || true";
+      assertTemplateResult('', "{% if #{markup} %} YES {% endif %}");
+    }
+*/
+  }
+}

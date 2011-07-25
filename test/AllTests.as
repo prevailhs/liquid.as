@@ -7,7 +7,7 @@ package {
      */
     //import liquid.ModuleExTest;
     //import liquid.StandardFilterTest;
-    //import liquid.OutputTest;
+    import liquid.OutputTest;
     //import liquid.FilterTest;
     import liquid.TemplateTest;
     import liquid.ConditionTest;
@@ -20,7 +20,7 @@ package {
     import liquid.ErrorHandlingTest;
     import liquid.RegExpTest;
     import liquid.StrainerTest;
-    //import liquid.ParsingQuirksTest;
+    import liquid.ParsingQuirksTest;
     //import liquid.HTMLTagTest;
     //import liquid.tags.UnlessElseTest;
     //import liquid.tags.StandardTagTest;
@@ -35,7 +35,7 @@ package {
     public class AllTests {
         //public var liquid_ModuleExTest:liquid.ModuleExTest;
         //public var liquid_StandardFilterTest:liquid.StandardFilterTest;
-        //public var liquid_OutputTest:liquid.OutputTest;
+        public var liquid_OutputTest:liquid.OutputTest;
         //public var liquid_FilterTest:liquid.FilterTest;
         public var liquid_TemplateTest:liquid.TemplateTest;
         public var liquid_ConditionTest:liquid.ConditionTest;
@@ -48,7 +48,7 @@ package {
         public var liquid_ErrorHandlingTest:liquid.ErrorHandlingTest;
         public var liquid_RegExpTest:liquid.RegExpTest;
         public var liquid_StrainerTest:liquid.StrainerTest;
-        //public var liquid_ParsingQuirksTest:liquid.ParsingQuirksTest;
+        public var liquid_ParsingQuirksTest:liquid.ParsingQuirksTest;
         //public var liquid_HTMLTagTest:liquid.HTMLTagTest;
         //public var liquid_tags_UnlessElseTest:liquid.tags.UnlessElseTest;
         //public var liquid_tags_StandardTagTest:liquid.tags.StandardTagTest;
@@ -62,3 +62,8 @@ package {
     }
 }
 
+import liquid.Template;
+import asunit.asserts.*;
+function assertTemplateResult(expected:String, template:String, assigns:Object = null, message:String = null):void {
+  assertEquals(message, expected, Template.parse(template).render(assigns));
+}

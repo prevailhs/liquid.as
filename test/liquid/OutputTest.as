@@ -1,116 +1,148 @@
-require 'test_helper'
+package liquid  {
 
-module FunnyFilter
-  def make_funny(input)
-    'LOL'
-  end
+  import asunit.asserts.*;
+  import asunit.framework.IAsync;
+  import flash.display.Sprite;
 
-  def cite_funny(input)
-    "LOL: #{input}"
-  end
+  import support.phs.asserts.*;
+  import liquid.Template;
+  import liquid.errors.SyntaxError;
 
-  def add_smiley(input, smiley = ":-)")
-    "#{input} #{smiley}"
-  end
+  public class OutputTest {
 
-  def add_tag(input, tag = "p", id = "foo")
-    %|<#{tag} id="#{id}">#{input}</#{tag}>|
-  end
+    [Inject]
+    public var async:IAsync;
 
-  def paragraph(input)
-    "<p>#{input}</p>"
-  end
+    [Inject]
+    public var context:Sprite;
 
-  def link_to(name, url)
-    %|<a href="#{url}">#{name}</a>|
-  end
+    private var _assigns:Object;
 
-end
+    [Before]
+    public function setUp():void {
+      _assigns = {
+        'best_cars': 'bmw',
+        'car': {'bmw': 'good', 'gm': 'bad'}
+        }
+    }
 
-class OutputTest < Test::Unit::TestCase
-  include Liquid
+    [After]
+    public function tearDown():void {
+    }
 
-  def setup
-    @assigns = {
-      'best_cars' => 'bmw',
-      'car' => {'bmw' => 'good', 'gm' => 'bad'}
-      }
-  end
+    [Test]
+    public function shouldTestVariable():void {
+      var text:String = " {{best_cars}} ";
 
-  def test_variable
-    text = %| {{best_cars}} |
+      var expected:String = " bmw ";
+      assertEquals(expected, Template.parse(text).render(_assigns));
+    }
 
-    expected = %| bmw |
-    assert_equal expected, Template.parse(text).render(@assigns)
-  end
+    [Test]
+    public function shouldTestVariableTraversing():void {
+      var text:String = " {{car.bmw}} {{car.gm}} {{car.bmw}} ";
 
-  def test_variable_traversing
-    text = %| {{car.bmw}} {{car.gm}} {{car.bmw}} |
+      var expected:String = " good bad good ";
+      assertEquals(expected, Template.parse(text).render(_assigns));
+    }
 
-    expected = %| good bad good |
-    assert_equal expected, Template.parse(text).render(@assigns)
-  end               
+    [Test]
+    public function shouldTestVariablePiping():void {
+      var text:String = " {{ car.gm | make_funny }} ";
+      var expected:String = " LOL ";
 
-  def test_variable_piping
-    text = %( {{ car.gm | make_funny }} )
-    expected = %| LOL |
+      assertEquals(expected, Template.parse(text).render(_assigns, { "filters": [FunnyFilter] } ));
+    }
 
-    assert_equal expected, Template.parse(text).render(@assigns, :filters => [FunnyFilter])
-  end
+    [Test]
+    public function shouldTestVariablePipingWithInput():void {
+      var text:String = " {{ car.gm | cite_funny }} ";
+      var expected:String = " LOL: bad ";
 
-  def test_variable_piping_with_input
-    text = %( {{ car.gm | cite_funny }} )
-    expected = %| LOL: bad |
+      assertEquals(expected, Template.parse(text).render(_assigns, { "filters": [FunnyFilter] } ));
+    }
 
-    assert_equal expected, Template.parse(text).render(@assigns, :filters => [FunnyFilter])
-  end
+    [Test]
+    public function shouldTestVariablePipingWithArgs():void {
+      var text:String = " {{ car.gm | add_smiley : ':-(' }} ";
+      var expected:String = " bad :-( ";
 
-  def test_variable_piping_with_args
-    text = %! {{ car.gm | add_smiley : ':-(' }} !
-    expected = %| bad :-( |
+      assertEquals(expected, Template.parse(text).render(_assigns, { "filters": [FunnyFilter] } ));
+    }
 
-    assert_equal expected, Template.parse(text).render(@assigns, :filters => [FunnyFilter])
-  end
+    [Test]
+    public function shouldTestVariablePipingWithNoArgs():void {
+      var text:String = " {{ car.gm | add_smiley }} ";
+      var expected:String = " bad :-) ";
 
-  def test_variable_piping_with_no_args
-    text = %! {{ car.gm | add_smiley }} !
-    expected = %| bad :-) |
+      assertEquals(expected, Template.parse(text).render(_assigns, { "filters": [FunnyFilter] } ));
+    }
 
-    assert_equal expected, Template.parse(text).render(@assigns, :filters => [FunnyFilter])
-  end
+    [Test]
+    public function shouldTestMultipleVariablePipingWithArgs():void {
+      var text:String = " {{ car.gm | add_smiley : ':-(' | add_smiley : ':-('}} ";
+      var expected:String = " bad :-( :-( ";
 
-  def test_multiple_variable_piping_with_args
-    text = %! {{ car.gm | add_smiley : ':-(' | add_smiley : ':-('}} !
-    expected = %| bad :-( :-( |
+      assertEquals(expected, Template.parse(text).render(_assigns, { "filters": [FunnyFilter] } ));
+    }
 
-    assert_equal expected, Template.parse(text).render(@assigns, :filters => [FunnyFilter])
-  end
+    [Test]
+    public function shouldTestVariablePipingWithMultipleArgs():void {
+      var text:String = " {{ car.gm | add_tag : 'span', 'bar'}} ";
+      var expected:String = ' <span id="bar">bad</span> ';
 
-  def test_variable_piping_with_args
-    text = %! {{ car.gm | add_tag : 'span', 'bar'}} !
-    expected = %| <span id="bar">bad</span> |
+      assertEquals(expected, Template.parse(text).render(_assigns, { "filters": [FunnyFilter] } ));
+    }
 
-    assert_equal expected, Template.parse(text).render(@assigns, :filters => [FunnyFilter])
-  end
+    [Test]
+    public function shouldTestVariablePipingWithVariableArgs():void {
+      var text:String = " {{ car.gm | add_tag : 'span', car.bmw}} ";
+      var expected:String = ' <span id="good">bad</span> ';
 
-  def test_variable_piping_with_variable_args
-    text = %! {{ car.gm | add_tag : 'span', car.bmw}} !
-    expected = %| <span id="good">bad</span> |
+      assertEquals(expected, Template.parse(text).render(_assigns, { "filters": [FunnyFilter] } ));
+    }
 
-    assert_equal expected, Template.parse(text).render(@assigns, :filters => [FunnyFilter])
-  end
+    [Test]
+    public function shouldTestMultiplePipings():void {
+      var text:String = " {{ best_cars | cite_funny | paragraph }} ";
+      var expected:String = " <p>LOL: bmw</p> ";
 
-  def test_multiple_pipings
-    text = %( {{ best_cars | cite_funny | paragraph }} )
-    expected = %| <p>LOL: bmw</p> |
+      assertEquals(expected, Template.parse(text).render(_assigns, { "filters": [FunnyFilter] } ));
+    }
 
-    assert_equal expected, Template.parse(text).render(@assigns, :filters => [FunnyFilter])
-  end
+    [Test]
+    public function shouldTestLinkTo():void {
+      var text:String = " {{ 'Typo' | link_to: 'http://typo.leetsoft.com' }} ";
+      var expected:String = ' <a href="http://typo.leetsoft.com">Typo</a> ';
 
-  def test_link_to
-    text = %( {{ 'Typo' | link_to: 'http://typo.leetsoft.com' }} )
-    expected = %| <a href="http://typo.leetsoft.com">Typo</a> |
+      assertEquals(expected, Template.parse(text).render(_assigns, { "filters": [FunnyFilter] } ));
+    }
+  }
+}
 
-    assert_equal expected, Template.parse(text).render(@assigns, :filters => [FunnyFilter])
-  end
-end # OutputTest
+
+class FunnyFilter extends Object {
+  public static function make_funny(input:String):String {
+    return 'LOL';
+  }
+
+  public static function cite_funny(input:String):String {
+    return "LOL: " + input;
+  }
+
+  public static function add_smiley(input:String, smiley:String = ":-)"):String {
+    return input + " " + smiley;
+  }
+
+  public static function add_tag(input:String, tag:String = "p", id:String = "foo"):String {
+    return "<" + tag + " id=\"" + id + "\">" + input + "</" + tag + ">";
+  }
+
+  public static function paragraph(input:String):String {
+    return "<p>" + input + "</p>"
+  }
+
+  public static function link_to(name:String, url:String):String {
+    return "<a href=\"" + url + "\">" + name + "</a>";
+  }
+};
