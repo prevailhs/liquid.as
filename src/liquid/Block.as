@@ -115,14 +115,16 @@ package liquid {
     }
 
     protected function renderAll(list:Array, context:Context):* {
-      return list.map(function(token:*, index:int, array:Array):Object {
+      // NOTE ruby Array#join does a deep join, whereas AS3 Array.join does a 
+      // shallow join; therefore use a deepJoin helper to do the same behavior
+      return Liquid.deepJoin(list.map(function(token:*, index:int, array:Array):Object {
         try {
           return ('render' in token) ? token.render(context) : token;
         } catch (e:liquid.errors.LiquidError) {
           return context.handleError(e);
         }
         return 'ASSERT: Should not get here';
-      }).join('');
+      }), '');
     }
   }
 }

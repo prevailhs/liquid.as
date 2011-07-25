@@ -72,6 +72,8 @@ package liquid {
         //trace('Registering tags');
         Template.registerTag('assign', liquid.tags.Assign);
         Template.registerTag('if', liquid.tags.If);
+        Template.registerTag('unless', liquid.tags.Unless);
+        Template.registerTag('for', liquid.tags.For);
       }
     }
 

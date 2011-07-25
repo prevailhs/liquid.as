@@ -86,7 +86,6 @@ package liquid {
     }
 
     private function equalVariables(left:*, right:*):Boolean {
-
       // Check if we're a function to apply, like empty
       // NOTE This replaces symbols for ruby, see Context::LITERALS
       if (left is Function) {
@@ -102,9 +101,8 @@ package liquid {
 
     private function interpretCondition(left:*, right:*, op:String, context:Context):* {
       // If the operator is empty this means that the decision statement is 
-      // just
-      // a single variable. We can just poll this variable from the context and
-      // return this as the result.
+      // just a single variable. We can just poll this variable from the 
+      // context and return this as the result.
       if (!op) return context.getItem(left);
 
       left = context.getItem(left);

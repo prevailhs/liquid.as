@@ -140,6 +140,11 @@ package {
       arr.length = 0;
     }
 
+    // TODO Belongs on Array
+    public static function deepJoin(arr:Array, sep:*=NaN):String {
+      return Liquid.flatten(arr).join(sep);
+    }
+
     // TODO Belongs on Object
     public static function merge(obj1:Object, obj2:Object):Object {
       var obj:Object = { };

@@ -24,7 +24,7 @@ package liquid.tags {
     /* /(?:\b(?:\s?and\s?|\s?or\s?)\b|(?:\s*(?!\b(?:\s?and\s?|\s?or\s?)\b)(?:#{QuotedFragment}|\S+)\s*)+)/ */
     private static const ExpressionsAndOperators:RegExp = Liquid.combineRegExp("(?:\\b(?:\\s?and\\s?|\\s?or\\s?)\\b|(?:\\s*(?!\\b(?:\\s?and\\s?|\\s?or\\s?)\\b)(?:", Liquid.QuotedFragment, "|\\S+)\\s*)+)");
 
-    private var _blocks:Array;
+    protected var _blocks:Array;
 
     public function If(tagName:String, markup:String, tokens:Array) {
       _blocks = [];
