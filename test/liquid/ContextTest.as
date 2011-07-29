@@ -326,78 +326,71 @@ package liquid  {
       assertEquals(100, instance.getItem('cents.cents.amount'));
     }
 
-// TODO Enable when Drop is implemented
-/*
     [Test]
     public function shouldTestCentsThroughDrop():void {
-    instance.merge( "cents": CentsDrop.new )
-    assertEquals(100, instance.getItem('cents.amount']
+      instance.merge({"cents": new CentsDrop() });
+      assertEquals(100, instance.getItem('cents.amount'));
     }
 
     [Test]
     public function shouldTestNestedCentsThroughDrop():void {
-    instance.merge( "vars": {"cents": CentsDrop.new} )
-    assertEquals(100, instance.getItem('vars.cents.amount']
+      instance.merge({"vars": {"cents": new CentsDrop()} });
+      assertEquals(100, instance.getItem('vars.cents.amount'));
     }
 
     [Test]
     public function shouldTestDropMethodsWithQuestionMarks():void {
-    instance.merge( "cents": CentsDrop.new )
-    assert instance.getItem('cents.non_zero?']
+      instance.merge({"cents": new CentsDrop() });
+      assertNotNull(instance.getItem('cents.non_zero?'));
     }
 
     [Test]
     public function shouldTestContextFromWithinDrop():void {
-    instance.merge( "test": '123', "vars": ContextSensitiveDrop.new )
-    assertEquals('123', instance.getItem('vars.test']
+      instance.merge({"test": '123', "vars": new ContextSensitiveDrop() });
+      assertEquals('123', instance.getItem('vars.test'));
     }
 
     [Test]
     public function shouldTestNestedContextFromWithinDrop():void {
-    instance.merge( "test": '123', "vars": {"local": ContextSensitiveDrop.new }  )
-    assertEquals('123', instance.getItem('vars.local.test']
+      instance.merge({"test": '123', "vars": {"local": new ContextSensitiveDrop() }  });
+      assertEquals('123', instance.getItem('vars.local.test'));
     }
-*/
 
-    // TODO Figure out how to represent ranges in AS3
-    //[Test]
-    //public function shouldTestRanges():void {
-      //instance.merge( { "test": '5' } );
-      //assertEquals((1..5), instance.getItem('(1..5)'));
-      //assertEquals((1..5), instance.getItem('(1..test)']));
-      //assertEquals((5..5), instance.getItem('(test..test)']));
-    //}
-//
+    [Test]
+    public function shouldTestRanges():void {
+      instance.merge( { "test": '5' } );
+      // NOTE AS3 doesn't have ranges, so emulate with array
+      assertEqualsNestedArrays([1,2,3,4,5], instance.getItem('(1..5)'));
+      assertEqualsNestedArrays([1,2,3,4,5], instance.getItem('(1..test)'));
+      assertEqualsNestedArrays([5], instance.getItem('(test..test)'));
+    }
 
-// TODO Enable when Drop is implemented
-/*
     [Test]
     public function shouldTestCentsThroughDropNestedly():void {
-    instance.merge( "cents": {"cents": CentsDrop.new} )
-    assertEquals(100, instance.getItem('cents.cents.amount']
+      instance.merge({"cents": {"cents": new CentsDrop()}});
+      assertEquals(100, instance.getItem('cents.cents.amount'));
 
-    instance.merge( "cents": { "cents": {"cents": CentsDrop.new}} )
-    assertEquals(100, instance.getItem('cents.cents.cents.amount']
+      instance.merge({"cents": { "cents": {"cents": new CentsDrop()}}});
+      assertEquals(100, instance.getItem('cents.cents.cents.amount'));
     }
 
     [Test]
     public function shouldTestDropWithVariableCalledOnlyOnce():void {
-    instance.setItem('counter', CounterDrop.new
+      instance.setItem('counter', new CounterDrop());
 
-    assertEquals(1, instance.getItem('counter.count']
-    assertEquals(2, instance.getItem('counter.count']
-    assertEquals(3, instance.getItem('counter.count']
+      assertEquals(1, instance.getItem('counter.count'));
+      assertEquals(2, instance.getItem('counter.count'));
+      assertEquals(3, instance.getItem('counter.count'));
     }
 
     [Test]
     public function shouldTestDropWithKeyCalledOnlyOnce():void {
-    instance.setItem('counter', CounterDrop.new
+      instance.setItem('counter', new CounterDrop());
 
-    assertEquals(1, instance.getItem('counter["count"]']
-    assertEquals(2, instance.getItem('counter["count"]']
-    assertEquals(3, instance.getItem('counter["count"]']
+      assertEquals(1, instance.getItem('counter["count"]'));
+      assertEquals(2, instance.getItem('counter["count"]'));
+      assertEquals(3, instance.getItem('counter["count"]'));
     }
-*/
 
     // AS3 doesn't have lambda and procs so just test Function
     [Test]
@@ -462,15 +455,14 @@ package liquid  {
       assertEquals(345392, instance.getItem('magic'));
     }
 
-// TODO Enable when Category is implemented
-/*
-    [Test]
+    // FIXME CategoryDrop is defined local to this file, so class comparison 
+    // can't instantiate it to test for equivalence.
+    //[Test]
     public function shouldTestToLiquidAndContextAtFirstLevel():void {
-    instance.setItem('category', Category.new("foobar")
-    assert_kind_of CategoryDrop, instance.getItem('category']
-    assertEquals(instance, instance.getItem('category'].context
+      instance.setItem('category', new Category("foobar"));
+      assertEqualsClass(CategoryDrop, instance.getItem('category'));
+      assertEquals(instance, instance.getItem('category').context);
     }
-*/
   }
 }
 
@@ -480,55 +472,40 @@ class HundredCents {
   }
 }
 
-// TODO Enable when Drop is implemented
-//class CentsDrop extends Drop {
-  //public function get amount():HundredCents { return new HundredCents(); }
-  //public function get nonZero():Boolean { return true; }
-//}
-
-// TODO Enable when Drop is implemented
-//class ContextSensitiveDrop extends Drop {
-  //public function get test():* { return instance.getItem('test'); }
-//}
-
-// TODO Enable when Drop is implemented
-
-//class CentsDrop extends Drop {
-  //private var _name:String;
-//
-  //public function CentsDrop(var name:String) {
-    //_name = name;
-  //}
-//
-  //public function toLiquid():* {
-    //new CategoryDrop(this);
-  //}
-//}
-
-class CategoryDrop {
-  //attr_accessor :category, :context
-  //def initialize(category)
-    //@category = category
-  //  }
+class CentsDrop extends liquid.Drop {
+  public function get amount():HundredCents { return new HundredCents(); }
+  public function get nonZero():Boolean { return true; }
 }
 
-// TODO Enable when Drop is implemented
-//class CentsDrop extends Drop {
-  //private var _count:int = 0;
-  //public function get count():int { return _count++; }
-//}
+class ContextSensitiveDrop extends liquid.Drop {
+  public function get test():* { return _context.getItem('test'); }
+}
+
+class Category extends liquid.Drop {
+  private var _name:String;
+
+  public function Category(name:String) {
+    _name = name;
+  }
+
+  override public function toLiquid():* {
+    new CategoryDrop(this);
+  }
+}
+
+class CategoryDrop {
+  private var _category:Category;
+  
+  public function CategoryDrop(category:Category) {
+    _category = category
+  }
+}
+
+class CounterDrop extends liquid.Drop {
+  private var _count:int = 0;
+  public function get count():int { return _count += 1; }
+}
 
 class ArrayLike {
   public function fetch(index:int):void { }
-
-  //def [](index)
-    //@counts ||= []
-    //@counts[index] ||= 0
-    //@counts[index] += 1
-  //  }
-//
-  //def to_liquid
-    //self
-  //  }
-//  }
 }

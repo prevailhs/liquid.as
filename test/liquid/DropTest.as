@@ -14,16 +14,13 @@ package liquid  {
     [Inject]
     public var context:Sprite;
 
-    //private var instance:Drop;
 
     [Before]
     public function setUp():void {
-      //instance = new Drop();
     }
 
     [After]
     public function tearDown():void {
-      //instance = null;
     }
 
     [Test]
@@ -36,24 +33,21 @@ package liquid  {
 
     [Test]
     public function shouldTestTextDrop():void {
-      var output:String = Template.parse(' {{ product.texts.text }} ').render( { 'product': new CatchallDrop() } );
+      var output:String = Template.parse(' {{ product.texts.text }} ').render( { 'product': new ProductDrop() } );
       assertEquals(' text1 ', output);
     }
 
     [Test]
     public function shouldTestUnknownMethod():void {
-      var output:String = Template.parse(' {{ product.catchall.unknown }} ').render( { 'product': new CatchallDrop() } );
+      var output:String = Template.parse(' {{ product.catchall.unknown }} ').render( { 'product': new ProductDrop() } );
       assertEquals(' method: unknown ', output);
     }
 
-// TODO Enable when For tag is implemented
-/*
     [Test]
     public function shouldTestTextArrayDrop():void {
-      var output:String = Template.parse('{% for text in product.texts.array %} {{text}} {% endfor %}').render( { 'product': new CatchallDrop() } );
+      var output:String = Template.parse('{% for text in product.texts.array %} {{text}} {% endfor %}').render( { 'product': new ProductDrop() } );
       assertEquals(' text1  text2 ', output);
     }
-*/
 
     [Test]
     public function shouldTestContextDrop():void {
@@ -61,14 +55,13 @@ package liquid  {
       assertEquals(' carrot ', output);
     }
 
-// FIXME Not sure why this one isn't working?
-/*
+    // TODO Is this test misnamed?  Shouldn't it be 
+    // shouldTestNestedProductDrop
     [Test]
     public function shouldTestNestedContextDrop():void {
-      var output:String = Template.parse(' {{ product.context.foo }} ').render( { 'product': new ContextDrop(), 'foo': "monkey" } );
+      var output:String = Template.parse(' {{ product.context.foo }} ').render( { 'product': new ProductDrop(), 'foo': "monkey" } );
       assertEquals(' monkey ', output);
     }
-*/
 
     [Test]
     public function shouldTestProtected():void {
@@ -76,8 +69,6 @@ package liquid  {
       assertEquals('  ', output);
     }
 
-// TODO Enable when For tag is implemented
-/*
     [Test]
     public function shouldTestScope():void {
       assertEquals('1', Template.parse('{{ context.scopes }}').render( { 'context': new ContextDrop() } ));
@@ -87,9 +78,9 @@ package liquid  {
 
     [Test]
     public function shouldTestScopeThroughProc():void {
-      assertEquals('1', Template.parse('{{ s }}').render( { 'context': new ContextDrop(), 's': function(c:Object):Array { return c['context.scopes']; } } ));
-      assertEquals('2', Template.parse('{%for i in dummy%}{{ s }}{%endfor%}').render( { 'context': new ContextDrop(), 's': function(c:Object):Array { return c['context.scopes']; }, 'dummy': [1] } ));
-      assertEquals('3', Template.parse('{%for i in dummy%}{%for i in dummy%}{{ s }}{%endfor%}{%endfor%}').render( { 'context': new ContextDrop(), 's': function(c:Object):Array { return c['context.scopes']; }, 'dummy': [1] } ));
+      assertEquals('1', Template.parse('{{ s }}').render( { 'context': new ContextDrop(), 's': function(c:Object):* { return c.getItem('context.scopes'); } } ));
+      assertEquals('2', Template.parse('{%for i in dummy%}{{ s }}{%endfor%}').render( { 'context': new ContextDrop(), 's': function(c:Object):* { return c.getItem('context.scopes'); }, 'dummy': [1] } ));
+      assertEquals('3', Template.parse('{%for i in dummy%}{%for i in dummy%}{{ s }}{%endfor%}{%endfor%}').render( { 'context': new ContextDrop(), 's': function(c:Object):* { return c.getItem('context.scopes'); }, 'dummy': [1] } ));
     }
 
     [Test]
@@ -116,7 +107,6 @@ package liquid  {
     public function shouldTestEnumerableDrop():void {
       assertEquals('123', Template.parse('{% for c in collection %}{{c}}{% endfor %}').render( { 'collection': new EnumerableDrop() } ));
     }
-*/
 
     [Test]
     public function shouldTestEnumerableDropSize():void {
@@ -126,19 +116,17 @@ package liquid  {
 }
 
 class ContextDrop extends liquid.Drop {
-  // TODO Should this be in liquid.Drop?
-  public function get context():liquid.Context { return _context; }
   public function get scopes():int { return _context.scopes.length; }
 
-  public function get scopesAsArray():Array {
+  public function get scopes_as_array():Array {
     var arr:Array = new Array(_context.scopes.length);
     for (var i:int = 0; i < arr.length; i++) {
-      arr[i] = i;
+      arr[i] = i+1;
     }
     return arr;
   }
 
-  public function get loopPos():int {
+  public function get loop_pos():int {
     return _context.getItem('forloop.index');
   }
 
@@ -153,6 +141,10 @@ class ContextDrop extends liquid.Drop {
 
 class ProductDrop extends liquid.Drop {
   protected function get callmenot():* { return "protected"; }
+
+  public function get texts():TextDrop { return new TextDrop(); }
+  public function get catchall():CatchallDrop { return new CatchallDrop(); }
+  public function get context():* { return new ContextDrop(); }
 }
 
 class TextDrop extends liquid.Drop {
@@ -164,18 +156,12 @@ class CatchallDrop extends liquid.Drop {
   override public function beforeMethod(method:String):String {
     return 'method: ' + method;
   }
-
-  public function get texts():TextDrop { return new TextDrop(); }
-  public function get catchall():CatchallDrop { return new CatchallDrop(); }
-  //public function get context():ContextDrop { return new ContextDrop(); }
 }
 
 class EnumerableDrop extends liquid.Drop {
   public function get size():int { return 3; }
 
-  public function each(f:Function):void {
-    f.call(1);
-    f.call(2);
-    f.call(3);
+  public function forEach(f:Function):void {
+    new Array(1,2,3).forEach(f);
   }
 }

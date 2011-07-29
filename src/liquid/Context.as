@@ -222,13 +222,11 @@ package liquid {
     // Fetches an object starting at the local scope and then moving up the 
     // hierachy
     private function findVariable(key:String):* {
-      // TODO What type is scope?
       var scope:Object = Liquid.first(_scopes.filter(function(s:*, index:int, array:Array):Boolean {
         return s.hasOwnProperty(key);
       }));
 
       if (!scope) {
-        // TODO What type is environment?
         for each (var e:Object in _environments) {
           var v:* = lookupAndEvaluate(e, key);
           if (v) {

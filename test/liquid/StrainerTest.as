@@ -14,16 +14,13 @@ package liquid  {
     [Inject]
     public var context:Sprite;
 
-    //private var instance:Strainer;
 
     [Before]
     public function setUp():void {
-      //instance = new Strainer();
     }
 
     [After]
     public function tearDown():void {
-      //instance = null;
     }
 
     [Test]
@@ -33,16 +30,13 @@ package liquid  {
       assertEquals(false, strainer.respondTo('test'));
       assertEquals(false, strainer.respondTo('instance_eval'));
       assertEquals(false, strainer.respondTo('__send__'));
-      // FIXME Size not present on Object for AS3
-      //assertEquals(true, strainer.respondTo('size')); // from the standard 
-      //lib
+      assertEquals(true, 'size' in strainer);
     }
 
     [Test]
     public function shouldTestShouldRespondToTwoParameters():void {
       var strainer:Strainer = Strainer.create(null);
-      // FIXME Size not present on Object for AS3
-      //assertEquals(true, strainer.respondTo('size', false));
+      assertEquals(true, 'size' in strainer);
     }
 
     // Asserts that Object#respondTo_missing? is not being undefined in Ruby 

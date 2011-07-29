@@ -81,9 +81,7 @@ package liquid {
       return m;
     }
 
-    // FIXME Figure out if we need to do this
-    // remove all standard methods from the bucket so circumvent security
-    // problems
+    // TODO Decide if we need this for security purposes
 //    instance_methods.each do |m|
 //      unless @@required_methods.include?(m.to_sym)
 //        undef_method m

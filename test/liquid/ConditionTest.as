@@ -14,17 +14,14 @@ package liquid  {
     [Inject]
     public var context:Sprite;
 
-    //private var instance:Condition;
     private var _sharedContext:Context;
 
     [Before]
     public function setUp():void {
-      //instance = new Condition();
     }
 
     [After]
     public function tearDown():void {
-      //instance = null;
       if (_sharedContext) _sharedContext = null;
     }
 

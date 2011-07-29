@@ -14,16 +14,12 @@ package liquid  {
     [Inject]
     public var context:Sprite;
 
-    //private var instance:Template;
-
     [Before]
     public function setUp():void {
-      //instance = new Template();
     }
 
     [After]
     public function tearDown():void {
-      //instance = null;
     }
 
     [Test]

@@ -95,8 +95,8 @@ package support.phs.asserts {
      */
     static public function assertEqualsClass(...args:Array):void {
       var message:String;
-      var expected:Array;
-      var actual:Array;
+      var expected:Class;
+      var actual:*;
 
       if(args.length == 2) {
         message = "";
@@ -111,6 +111,8 @@ package support.phs.asserts {
       else {
         throw new IllegalOperationError("Invalid argument count");
       }
+
+      assertEquals(expected, Liquid.getClass(actual));
     }
 
     /**

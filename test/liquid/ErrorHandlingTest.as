@@ -67,18 +67,15 @@ package liquid  {
       });
     }
 
-// TODO Enable when if is implemented
-/*
     [Test]
     public function shouldTestUnrecognizedOperator():void {
       assertDoesNotThrow(function():void {
-        var template:Template = liquid.Template.parse(' {% if 1 =! 2 %}ok{%   }if %} ')
+        var template:Template = liquid.Template.parse(' {% if 1 =! 2 %}ok{% endif %} ')
         assertEquals(' Liquid error: Unknown operator =! ', template.render());
         assertEquals(1, template.errors.length);
-        assertEquals(liquid.errors.ArgumentError, getDefinitionByName(getQualifiedClassName(Liquid.first(template.errors))));
+        assertEqualsClass(liquid.errors.ArgumentError, Liquid.first(template.errors));
       });
     }
-*/
 
     // Liquid should not catch Errors that are not subclasses of LiquidError, like Interrupt and NoMemoryError
     [Test]

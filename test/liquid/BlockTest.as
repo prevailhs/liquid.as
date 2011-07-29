@@ -6,6 +6,8 @@ package liquid  {
 
   import support.phs.asserts.*;
 
+  import liquid.tags.Comment;
+
   public class BlockTest {
 
     [Inject]
@@ -14,16 +16,13 @@ package liquid  {
     [Inject]
     public var context:Sprite;
 
-    //private var instance:Block;
 
     [Before]
     public function setUp():void {
-      //instance = new Block();
     }
 
     [After]
     public function tearDown():void {
-      //instance = null;
     }
 
     [Test]
@@ -65,13 +64,12 @@ package liquid  {
         blockTypes(template.root.nodelist));
     }
 
-    // TODO Enable when Comment is supported
-    //[Test]
-    //public function shouldTestWithBlock():void {
-      //var template:Template = Template.parse("  {% comment %} {% endcomment %} ");
-      //assertEqualsNestedArrays([String, Comment, String], blockTypes(template.root.nodelist));
-      //assertEquals(3, template.root.nodelist.length);
-    //}
+    [Test]
+    public function shouldTestWithBlock():void {
+      var template:Template = Template.parse("  {% comment %} {% endcomment %} ");
+      assertEqualsNestedArrays([String, Comment, String], blockTypes(template.root.nodelist));
+      assertEquals(3, template.root.nodelist.length);
+    }
 
     [Test]
     public function shouldTestWithCustomTag():void {

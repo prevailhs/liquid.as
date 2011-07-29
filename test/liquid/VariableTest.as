@@ -14,16 +14,13 @@ package liquid  {
     [Inject]
     public var context:Sprite;
 
-    //private var instance:Variable;
 
     [Before]
     public function setUp():void {
-      //instance = new Variable();
     }
 
     [After]
     public function tearDown():void {
-      //instance = null;
     }
 
     [Test]
@@ -33,7 +30,6 @@ package liquid  {
     }
 
     [Test]
-    // TODO Consider splitting up this into smaller unit tests
     public function shouldTestFilters():void {
       var v:Variable;
 

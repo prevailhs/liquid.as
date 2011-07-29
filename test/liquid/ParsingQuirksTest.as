@@ -66,23 +66,20 @@ package liquid  {
       });
     }
 
-// TODO Enable when If tag is implemented
-/*
     [Test]
     public function shouldTestMeaninglessParens():void {
       var assigns:Object = { 'b': 'bar', 'c': 'baz' };
       var markup:String = "a == 'foo' or (b == 'bar' and c == 'baz') or false";
-      assertTemplateResult(' YES ', "{% if #{markup} %} YES {% endif %}", assigns);
+      assertTemplateResult(' YES ', "{% if " + markup + " %} YES {% endif %}", assigns);
     }
 
     [Test]
     public function shouldTestUnexpectedCharactersSilentlyEatLogic():void {
       var markup:String;
       markup = "true && false";
-      assertTemplateResult(' YES ', "{% if #{markup} %} YES {% endif %}");
+      assertTemplateResult(' YES ', "{% if " + markup + " %} YES {% endif %}");
       markup = "false || true";
-      assertTemplateResult('', "{% if #{markup} %} YES {% endif %}");
+      assertTemplateResult('', "{% if " + markup + " %} YES {% endif %}");
     }
-*/
   }
 }
