@@ -89,9 +89,15 @@ package {
       var globalRegExp:RegExp = new RegExp(regString, "g");
 
       var results:Array = [];
-      var result:Object = globalRegExp.exec(str);
+      var result:Array = globalRegExp.exec(str);
       while (result != null) {
-        results.push(result[result.length - 1]);
+        // TODO Is this the same behavior as ruby?  Make sure it does nested 
+        // arrays correctly.
+        if (result.length > 1) { // HACK, deeper match, nest arrays to be like ruby
+          results.push(result.slice(1));
+        } else { // Normal match, just push it
+          results.push(result[0]);
+        }
         result = globalRegExp.exec(str);
       }
 
@@ -102,6 +108,13 @@ package {
     private static const Trim:RegExp = /(\A\s+|\s+\Z)/g;
     public static function trim(str:String):String {
       return str.replace(Liquid.Trim, '');
+    }
+
+    // TODO Belongs on String and Array
+    public static function empty(strOrArr:*):Boolean {
+      if (strOrArr is String) return !strOrArr || strOrArr.length == 0;
+      if (strOrArr is Array) return strOrArr.length == 0;
+      throw new Error("Cannot call empty on this item: ", getQualifiedClassName(strOrArr));
     }
 
     // TODO Belongs on Array

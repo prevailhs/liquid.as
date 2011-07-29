@@ -1,83 +1,93 @@
-module Liquid
-  class Case < Block
-    Syntax     = /(#{QuotedFragment})/
-    WhenSyntax = /(#{QuotedFragment})(?:(?:\s+or\s+|\s*\,\s*)(#{QuotedFragment}.*))?/
+package liquid.tags {
+  import liquid.Block;
+  import liquid.Condition;
+  import liquid.Context;
+  import liquid.ElseCondition;
+  import liquid.errors.SyntaxError;
 
-    def initialize(tag_name, markup, tokens)      
-      @blocks = []
-      
-      if markup =~ Syntax
-        @left = $1
-      else
-        raise SyntaxError.new("Syntax Error in tag 'case' - Valid syntax: case [condition]")
-      end
-            
-      super
-    end
+  public class Case extends Block {
+    /* /(#{QuotedFragment})/ */
+    private static const Syntax:RegExp = Liquid.combineRegExp("(", Liquid.QuotedFragment, ")");
+    /* /(#{QuotedFragment})(?:(?:\s+or\s+|\s*\,\s*)(#{QuotedFragment}.*))?/ */
+    private static const WhenSyntax:RegExp = Liquid.combineRegExp("(", Liquid.QuotedFragment, ")(?:(?:\\s+or\\s+|\\s*\\,\\s*)(", Liquid.QuotedFragment, ".*))?");
 
-    def unknown_tag(tag, markup, tokens)
-      @nodelist = []
-      case tag
-      when 'when'
-        record_when_condition(markup)
-      when 'else'
-        record_else_condition(markup)
-      else
-        super
-      end
-    end
+    private var _left:String;
+    private var _blocks:Array;
 
-    def render(context)      
-      context.stack do          
-        execute_else_block = true
-        
-        @blocks.inject([]) do |output, block|
-      
-          if block.else? 
-            
-            return render_all(block.attachment, context) if execute_else_block
-            
-          elsif block.evaluate(context)
-            
-            execute_else_block = false        
-            output += render_all(block.attachment, context)                    
-          end            
-      
-          output
-        end
-      end          
-    end
+    public function Case(tagName:String, markup:String, tokens:Array) {
+      _blocks = [];
+
+      var matches:Array = markup.match(Syntax);
+      if (matches) {
+        _left = matches[1];
+        super(tagName, markup, tokens);
+      } else {
+        throw new liquid.errors.SyntaxError("Syntax Error in tag 'case' - Valid syntax: case [condition]");
+      }
+    }
+
+    override public function unknownTag(tag:String, markup:String, tokens:Array):void {
+      _nodelist = [];
+      switch(tag) {
+        case 'when': {
+          recordWhenCondition(markup);
+          break;
+        }
+        case 'else': {
+          recordElseCondition(markup);
+          break;
+        }
+        default: {
+          super.unknownTag(tag, markup, tokens);
+          break;
+        }
+      }
+    }
+
+    override public function render(context:Context):* {
+      return context.stack(null, function():* {
+        var executeElseBlock:Boolean = true;
+
+        var output:Array = [];
+        for each (var block:Condition in _blocks) {
+          if (block.isElse) {
+            if (executeElseBlock) return renderAll(block.attachment, context);
+          } else if (block.evaluate(context)) {
+            executeElseBlock = false;
+            output += renderAll(block.attachment, context);
+          }
+        }
+
+        return output;
+      });
+    }
+
     
-    private
-    
-    def record_when_condition(markup)                
-      while markup
-      	# Create a new nodelist and assign it to the new block
-      	if not markup =~ WhenSyntax
-      	  raise SyntaxError.new("Syntax Error in tag 'case' - Valid when condition: {% when [condition] [or condition2...] %} ")
-      	end
+    private function recordWhenCondition(markup:String):void {
+      while (markup) {
+        // Create a new nodelist and assign it to the new block
+        var matches:Array = markup.match(WhenSyntax);
+        if (!matches) {
+          throw new liquid.errors.SyntaxError("Syntax Error in tag 'case' - Valid when condition: {% when [condition] [or condition2...] %} ");
+        }
 
-      	markup = $2
+        markup = matches[2];
 
-      	block = Condition.new(@left, '==', $1)        
-      	block.attach(@nodelist)
-      	@blocks.push(block)
-      end
-    end
+        var block:Condition = new Condition(_left, '==', matches[1]);
+        block.attach(_nodelist);
+        _blocks.push(block);
+      }
+    }
 
-    def record_else_condition(markup)            
-
-      if not markup.strip.empty?
-        raise SyntaxError.new("Syntax Error in tag 'case' - Valid else condition: {% else %} (no parameters) ")
-      end
+    private function recordElseCondition(markup:String):void {
+      if (!Liquid.empty(Liquid.trim(markup))) {
+        throw new liquid.errors.SyntaxError("Syntax Error in tag 'case' - Valid else condition: {% else %} (no parameters) ");
+      }
          
-      block = ElseCondition.new            
-      block.attach(@nodelist)
-      @blocks << block
-    end
-    
-        
-  end    
-  
-  Template.register_tag('case', Case)
-end
+      var block:Condition = new ElseCondition();
+      block.attach(_nodelist);
+      _blocks.push(block);
+    }
+  }
+}
+

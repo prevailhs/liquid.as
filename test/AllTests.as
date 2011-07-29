@@ -23,7 +23,7 @@ package {
   import liquid.ParsingQuirksTest;
   //import liquid.HTMLTagTest;
   import liquid.tags.UnlessElseTest;
-  //import liquid.tags.StandardTagTest;
+  import liquid.tags.StandardTagTest;
   import liquid.tags.StatementsTest;
   import liquid.tags.IfElseTest;
   import liquid.DropTest;
@@ -50,7 +50,7 @@ package {
       public var liquid_ParsingQuirksTest:liquid.ParsingQuirksTest;
       //public var liquid_HTMLTagTest:liquid.HTMLTagTest;
       public var liquid_tags_UnlessElseTest:liquid.tags.UnlessElseTest;
-      //public var liquid_tags_StandardTagTest:liquid.tags.StandardTagTest;
+      public var liquid_tags_StandardTagTest:liquid.tags.StandardTagTest;
       public var liquid_tags_StatementsTest:liquid.tags.StatementsTest;
       public var liquid_tags_IfElseTest:liquid.tags.IfElseTest;
       public var liquid_DropTest:liquid.DropTest;

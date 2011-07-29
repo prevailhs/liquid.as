@@ -1,9 +1,16 @@
-module Liquid
-  class Comment < Block
-    def render(context)
-      ''
-    end
-  end
+package liquid.tags {
+  import liquid.Block;
+  import liquid.Context;
 
-  Template.register_tag('comment', Comment)
-end
+  public class Comment extends Block {
+
+    public function Comment(tagName:String, markup:String, tokens:Array) {
+      super(tagName, markup, tokens);
+    }
+
+    override public function render(context:Context):* {
+      return '';
+    }
+  }
+}
+

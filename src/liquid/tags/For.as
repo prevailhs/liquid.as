@@ -66,8 +66,8 @@ package liquid.tags {
         _name = matches[1] + '-' + matches[2];
         _reversed = matches[3];
         _attributes = {};
-        for each (var kv:* in Liquid.scan(markup, Liquid.TagAttributes)) {
-          _attributes[kv] = kv;
+        for each (var pair:Array in Liquid.scan(markup, Liquid.TagAttributes)) {
+          _attributes[pair[0]] = pair[1];
         }
         super(tagName, markup, tokens);
       } else {
