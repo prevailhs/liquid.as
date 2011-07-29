@@ -165,151 +165,162 @@ package liquid {
       }
     }
 
-      /**
-       * Look up variable, either resolve directly after considering the name. We can directly handle
-       * Strings, digits, floats and booleans (true,false).
-       * If no match is made we lookup the variable in the current scope and
-       * later move up to the parent blocks to see if we can resolve the variable somewhere up the tree.
-       * Some special keywords return symbols. Those symbols are to be called on the rhs object in expressions
-       *
-       * Example:
-       *   products == empty #=> products.empty?
-       */
-      private function resolve(key:String):* {
-        if (LITERALS.hasOwnProperty(key)) {
-          return LITERALS[key];
-        } else {
-          var matches:Array;
-          matches = key.match(/^'(.*)'$/);
-          if (matches) { // Single quoted strings
-            return matches[1];
-          } else  {
-            matches = key.match(/^"(.*)"$/);
-            if (matches) { // Double quoted strings
-              return matches[1];
-            } else {
-              matches = key.match(/^(\d+)$/);
-              if (matches) { // Integer and floats
-                return parseInt(matches[1]);
-                // TODO Support ranges, perhaps with a custom Range class
-    //          } else if (matches = key.match(/^\((\S+)\.\.(\S+)\)$/)) { //
-    //          Ranges
-    //            return [parseInt(resolve(matches[1])..parseInt(resolve(matches[2]))];
-              } else {
-                matches = key.match(/^(\d[\d\.]+)$/);
-                if (matches) { // Floats
-                  return parseFloat(matches[1]);
-                } else {
-                  return variable(key);
+    internal const SingleQuotedString:RegExp = /^'(.*)'$/;
+    internal const DoubleQuotedString:RegExp = /^"(.*)"$/;
+    internal const Integer:RegExp = /^(\d+)$/;
+    internal const Range:RegExp = /^\((\S+)\.\.(\S+)\)$/;
+    internal const Float:RegExp = /^(\d[\d\.]+)$/;
+    /**
+      * Look up variable, either resolve directly after considering the name. We can directly handle
+      * Strings, digits, floats and booleans (true,false).
+      * If no match is made we lookup the variable in the current scope and
+      * later move up to the parent blocks to see if we can resolve the variable somewhere up the tree.
+      * Some special keywords return symbols. Those symbols are to be called on the rhs object in expressions
+      *
+      * Example:
+      *   products == empty #=> products.empty?
+      */
+    private function resolve(key:String):* {
+      if (LITERALS.hasOwnProperty(key)) {
+        return LITERALS[key];
+      } else if (SingleQuotedString.test(key)) {
+        return key.match(SingleQuotedString)[1];
+      } else if (DoubleQuotedString.test(key)) {
+        return key.match(DoubleQuotedString)[1];
+      } else if (Integer.test(key)) {
+        return parseInt(key.match(Integer)[1]);
+      } else if (Range.test(key)) {
+        var range:Array = key.match(Range);
+        range[1] = resolve(range[1]);
+        range[2] = resolve(range[2]);
+        var left:Number = parseInt(range[1]);
+        var right:Number = parseInt(range[2]);
+        var arr:Array = [];
+        var limit:int;
+        var i:int;
+
+        if (isNaN(left) || isNaN(right)) { // assume character range
+          // TODO Add in error checking to make sure ranges are single 
+          // character, A-Z or a-z, etc.
+          left = range[0].charCodeAt(0);
+          right = range[1].charCodeAt(0);
+
+          limit = right-left+1;
+          for (i=0; i<limit; i++) arr.push(String.fromCharCode(i+left)); 
+        } else { // numeric range
+          limit = right-left+1;
+          for (i=0; i < limit; i++) arr.push(left+i);
+        }
+        return arr;
+      } else if (Float.test(key)) {
+        return parseFloat(key.match(Float)[1]);
+      } else {
+        return variable(key);
+      }
+    }
+
+    // Fetches an object starting at the local scope and then moving up the 
+    // hierachy
+    private function findVariable(key:String):* {
+      // TODO What type is scope?
+      var scope:Object = Liquid.first(_scopes.filter(function(s:*, index:int, array:Array):Boolean {
+        return s.hasOwnProperty(key);
+      }));
+
+      if (!scope) {
+        // TODO What type is environment?
+        for each (var e:Object in _environments) {
+          var v:* = lookupAndEvaluate(e, key);
+          if (v) {
+            scope = e;
+            break;
+          }
+        }
+      }
+
+      if (!scope) scope = Liquid.last(_environments);
+      if (!scope) scope = Liquid.first(_scopes);
+      if (!v) v = lookupAndEvaluate(scope, key);
+
+      v = toLiquid(v);
+      if (v && 'context' in v) v.context = this;
+
+      return v;
+    }
+
+    /**
+      * Resolves namespaced queries gracefully.
+      *
+      * Example
+      *  @context.getItem('hash') = {"name" => 'tobi'}
+      *  assert_equal 'tobi', @context.getItem('hash.name')
+      *  assert_equal 'tobi', @context.getItem('hash["name"]')
+      */
+    private function variable(markup:String):* {
+      var parts:Array = Liquid.scan(markup, Liquid.VariableParser);
+      var squareBracketed:RegExp = /^\[(.*)\]$/;
+
+      var firstPart:String = parts.shift();
+
+      var matches:Array = firstPart.match(squareBracketed);
+      if (matches) {
+        firstPart = resolve(matches[1]);
+      }
+
+      var object:* = findVariable(firstPart);
+      if (object) {
+        for each (var part:String in parts) {
+          var partResolved:Array = part.match(squareBracketed);
+          if (partResolved) part = resolve(partResolved[1]);
+
+          // If object is a hash- or array-like object we look for the
+          // presence of the key and if its available we return it
+          if (object is Object && (part in object || object is Drop || (object is Array && part is int))) {
+
+            // if its a proc we will replace the entry with the proc
+            var res:* = lookupAndEvaluate(object, part);
+            object = toLiquid(res);
+
+            // Some special cases. If the part wasn't in square brackets and
+            // no key with the same name was found we interpret following
+            // calls as commands and call them on the current object.
+            // AS3 doesn't have size, first and last so do the mapping if
+            // necessary for Array
+            // TODO Consider if we need to allow Object either
+          } else if (!partResolved && (['size', 'first', 'last'].indexOf(part) >= 0) && ((part in object) || (object is Array))) {
+            if (part in object) {
+              object = toLiquid(object[part]);
+            } else if (object is Array) { // Array
+              switch(part) {
+                case 'size': {
+                  object = toLiquid(object.length);
+                  break;
+                }
+                case 'first': {
+                  object = toLiquid(Liquid.first(object));
+                  break;
+                }
+                case 'last': {
+                  object = toLiquid(Liquid.last(object));
+                  break;
                 }
               }
             }
+
+            // No key was present with the desired value and it wasn't one
+            // of the directly supported keywords either. The only thing we
+            // got left is to return nil
+          } else {
+            return null;
           }
+
+          // If we are dealing with a drop here we have to
+          if ('context' in object) object.context = this;
         }
       }
 
-      // Fetches an object starting at the local scope and then moving up the
-      // hierachy
-      private function findVariable(key:String):* {
-        // TODO What type is scope?
-        var scope:Object = Liquid.first(_scopes.filter(function(s:*, index:int, array:Array):Boolean {
-          return s.hasOwnProperty(key);
-        }));
-
-        if (!scope) {
-          // TODO What type is environment?
-          for each (var e:Object in _environments) {
-            var v:* = lookupAndEvaluate(e, key);
-            if (v) {
-              scope = e;
-              break;
-            }
-          }
-        }
-
-        if (!scope) scope = Liquid.last(_environments);
-        if (!scope) scope = Liquid.first(_scopes);
-        if (!v) v = lookupAndEvaluate(scope, key);
-
-        v = toLiquid(v);
-        if (v && 'context' in v) v.context = this;
-
-        return v;
-      }
-
-      /**
-       * Resolves namespaced queries gracefully.
-       *
-       * Example
-       *  @context.getItem('hash') = {"name" => 'tobi'}
-       *  assert_equal 'tobi', @context.getItem('hash.name')
-       *  assert_equal 'tobi', @context.getItem('hash["name"]')
-       */
-      private function variable(markup:String):* {
-        var parts:Array = Liquid.scan(markup, Liquid.VariableParser);
-        var squareBracketed:RegExp = /^\[(.*)\]$/;
-
-        var firstPart:String = parts.shift();
-
-        var matches:Array = firstPart.match(squareBracketed);
-        if (matches) {
-          firstPart = resolve(matches[1]);
-        }
-
-        var object:* = findVariable(firstPart);
-        if (object) {
-          for each (var part:String in parts) {
-            var partResolved:Array = part.match(squareBracketed);
-            if (partResolved) part = resolve(partResolved[1]);
-
-            // If object is a hash- or array-like object we look for the
-            // presence of the key and if its available we return it
-            if (object is Object && (part in object || object is Drop || (object is Array && part is int))) {
-
-              // if its a proc we will replace the entry with the proc
-              var res:* = lookupAndEvaluate(object, part);
-              object = toLiquid(res);
-
-              // Some special cases. If the part wasn't in square brackets and
-              // no key with the same name was found we interpret following
-              // calls as commands and call them on the current object.
-              // AS3 doesn't have size, first and last so do the mapping if
-              // necessary for Array
-              // TODO Consider if we need to allow Object either
-            } else if (!partResolved && (['size', 'first', 'last'].indexOf(part) >= 0) && ((part in object) || (object is Array))) {
-              if (part in object) {
-                object = toLiquid(object[part]);
-              } else if (object is Array) { // Array
-                switch(part) {
-                  case 'size': {
-                    object = toLiquid(object.length);
-                    break;
-                  }
-                  case 'first': {
-                    object = toLiquid(Liquid.first(object));
-                    break;
-                  }
-                  case 'last': {
-                    object = toLiquid(Liquid.last(object));
-                    break;
-                  }
-                }
-              }
-
-              // No key was present with the desired value and it wasn't one
-              // of the directly supported keywords either. The only thing we
-              // got left is to return nil
-            } else {
-              return null;
-            }
-
-            // If we are dealing with a drop here we have to
-            if ('context' in object) object.context = this;
-          }
-        }
-
-        return object;
-      }
+      return object;
+    }
 
     private function lookupAndEvaluate(obj:Object, key:String):* {
       // AS3 doesn't support :[] method, so need to detect drop and use invokeDrop

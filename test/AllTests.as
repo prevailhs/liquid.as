@@ -12,7 +12,7 @@ package {
   import liquid.TemplateTest;
   import liquid.ConditionTest;
   //import liquid.SecurityTest;
-  //import liquid.CaptureTest;
+  import liquid.CaptureTest;
   import liquid.VariableTest;
   import liquid.BlockTest;
   //import liquid.FileSystemTest;
@@ -39,7 +39,7 @@ package {
       public var liquid_TemplateTest:liquid.TemplateTest;
       public var liquid_ConditionTest:liquid.ConditionTest;
       //public var liquid_SecurityTest:liquid.SecurityTest;
-      //public var liquid_CaptureTest:liquid.CaptureTest;
+      public var liquid_CaptureTest:liquid.CaptureTest;
       public var liquid_VariableTest:liquid.VariableTest;
       public var liquid_BlockTest:liquid.BlockTest;
       //public var liquid_FileSystemTest:liquid.FileSystemTest;

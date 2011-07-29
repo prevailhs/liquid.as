@@ -74,6 +74,9 @@ package liquid {
         Template.registerTag('if', liquid.tags.If);
         Template.registerTag('unless', liquid.tags.Unless);
         Template.registerTag('for', liquid.tags.For);
+        Template.registerTag('capture', liquid.tags.Capture);
+
+        _tagsInitialized = true;
       }
     }
 

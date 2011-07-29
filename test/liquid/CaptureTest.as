@@ -1,40 +1,67 @@
-require 'test_helper'
+package liquid  {
 
-class CaptureTest < Test::Unit::TestCase
-  include Liquid
+  import asunit.asserts.*;
+  import asunit.framework.IAsync;
+  import flash.display.Sprite;
 
-  def test_captures_block_content_in_variable
-    assert_template_result("test string", "{% capture 'var' %}test string{% endcapture %}{{var}}", {})
-  end
+  import support.phs.asserts.*;
 
-  def test_capture_to_variable_from_outer_scope_if_existing
-    template_source = <<-END_TEMPLATE
-    {% assign var = '' %}
-    {% if true %}
-    {% capture var %}first-block-string{% endcapture %}
-    {% endif %}
-    {% if true %}
-    {% capture var %}test-string{% endcapture %}
-    {% endif %}
-    {{var}}
-    END_TEMPLATE
-    template = Template.parse(template_source)
-    rendered = template.render
-    assert_equal "test-string", rendered.gsub(/\s/, '')
-  end
+  public class CaptureTest {
 
-  def test_assigning_from_capture
-    template_source = <<-END_TEMPLATE
-    {% assign first = '' %}
-    {% assign second = '' %}
-    {% for number in (1..3) %}
-    {% capture first %}{{number}}{% endcapture %}
-    {% assign second = first %}
-    {% endfor %}
-    {{ first }}-{{ second }}
-    END_TEMPLATE
-    template = Template.parse(template_source)
-    rendered = template.render
-    assert_equal "3-3", rendered.gsub(/\s/, '')
-  end
-end # CaptureTest
+    [Inject]
+    public var async:IAsync;
+
+    [Inject]
+    public var context:Sprite;
+
+
+    [Before]
+    public function setUp():void {
+    }
+
+    [After]
+    public function tearDown():void {
+    }
+
+    [Test]
+    public function shouldTestCaptureBlockContentInVariable():void {
+      assertTemplateResult("test string", "{% capture 'var' %}test string{% endcapture %}{{var}}", {});
+    }
+
+    [Test]
+    public function shouldTestCaptureToVariableFromOuterScopeIfExisting():void {
+      var templateSource:String = ( <![CDATA[
+                                    {% assign var = '' %}
+                                    {% if true %}
+                                    {% capture var %}first-block-string{% endcapture %}
+                                    {% endif %}
+                                    {% if true %}
+                                    {% capture var %}test-string{% endcapture %}
+                                    {% endif %}
+                                    {{var}}
+                                  ]]> ).toString();
+
+
+      var template:Template = Template.parse(templateSource);
+      var rendered:String = template.render();
+      assertEquals("test-string", rendered.replace(/\s/g, ''));
+    }
+
+    [Test]
+    public function shouldTestAssigningFromCapture():void {
+      var templateSource:String = ( <![CDATA[
+                                    {% assign first = '' %}
+                                    {% assign second = '' %}
+                                    {% for number in (1..3) %}
+                                    {% capture first %}{{number}}{% endcapture %}
+                                    {% assign second = first %}
+                                    {% endfor %}
+                                    {{ first }}-{{ second }}
+                                  ]]> ).toString();
+
+      var template:Template = Template.parse(templateSource);
+      var rendered:String = template.render();
+      assertEquals("3-3", rendered.replace(/\s/g, ''));
+    }
+  }
+}

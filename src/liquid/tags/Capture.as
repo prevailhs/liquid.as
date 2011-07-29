@@ -1,35 +1,41 @@
-module Liquid
+package liquid.tags {
+  import liquid.Block;
+  import liquid.Context;
+  import liquid.errors.SyntaxError;
 
-  # Capture stores the result of a block into a variable without rendering it inplace.
-  #
-  #   {% capture heading %}
-  #     Monkeys!
-  #   {% endcapture %}
-  #   ...
-  #   <h1>{{ heading }}</h1>
-  #
-  # Capture is useful for saving content for use later in your template, such as
-  # in a sidebar or footer.
-  #
-  class Capture < Block
-    Syntax = /(\w+)/
+  /**
+   * Capture stores the result of a block into a variable without rendering it 
+   * inplace.
+   *
+   *   {% capture heading %}
+   *     Monkeys!
+   *   {% endcapture %}
+   *   ...
+   *   <h1>{{ heading }}</h1>
+   *
+   * Capture is useful for saving content for use later in your template, such as
+   * in a sidebar or footer.
+   *
+   */
+  public class Capture extends Block {
+    private static const Syntax:RegExp = /(\w+)/;
 
-    def initialize(tag_name, markup, tokens)
-      if markup =~ Syntax
-        @to = $1
-      else
-        raise SyntaxError.new("Syntax Error in 'capture' - Valid syntax: capture [var]")
-      end
+    private var _to:String;
 
-      super
-    end
+    public function Capture(tagName:String, markup:String, tokens:Array) {
+      var matches:Array = markup.match(Syntax);
+      if (matches) {
+        _to = matches[1];
+        super(tagName, markup, tokens);
+      } else {
+        throw new liquid.errors.SyntaxError("Syntax Error in 'capture' - Valid syntax: capture [var]");
+      }
+    }
 
-    def render(context)
-      output = super
-      context.scopes.last[@to] = output.join
-      ''
-    end
-  end
-
-  Template.register_tag('capture', Capture)
-end
+    override public function render(context:Context):* {
+      var output:String = super.render(context);
+      Liquid.last(context.scopes)[_to] = output;
+      return '';
+    }
+  }
+}
