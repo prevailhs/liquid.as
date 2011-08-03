@@ -6,7 +6,7 @@ package {
    * modifications will be lost!
    */
   //import liquid.ModuleExTest;
-  //import liquid.StandardFilterTest;
+  import liquid.StandardFilterTest;
   import liquid.OutputTest;
   import liquid.FilterTest;
   import liquid.TemplateTest;
@@ -33,7 +33,7 @@ package {
   [Suite]
     public class AllTests {
       //public var liquid_ModuleExTest:liquid.ModuleExTest;
-      //public var liquid_StandardFilterTest:liquid.StandardFilterTest;
+      public var liquid_StandardFilterTest:liquid.StandardFilterTest;
       public var liquid_OutputTest:liquid.OutputTest;
       public var liquid_FilterTest:liquid.FilterTest;
       public var liquid_TemplateTest:liquid.TemplateTest;

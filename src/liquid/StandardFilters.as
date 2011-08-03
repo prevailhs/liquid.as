@@ -1,23 +1,28 @@
 package liquid {
 
 //require 'cgi'
+  import flash.utils.getQualifiedClassName;
+  
+  import liquid.errors.LiquidError;
 
 
   public class StandardFilters {
+    internal static const TableForEscapeHTML:Object = { '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;' };
+    internal static const HTMLEscape:Object = { '&': '&amp;',  '>': '&gt;',   '<': '&lt;', '"': '&quot;' };
 
     // Return the size of an array or of an string
     public static function size(input:*):* {
-      return ('size' in input) ? input.size : ('length' in input) ? input.length : 0;
+      return input ? ('size' in input) ? input.size : ('length' in input) ? input.length : 0 : 0;
     }
 
     // convert a input string to DOWNCASE
     public static function downcase(input:*):* {
-      return input.toString.toLowerCase();
+      return input ? input.toString().toLowerCase() : '';
     }
 
     // convert a input string to UPCASE
     public static function upcase(input:*):* {
-      return input.toString().toUpperCase();
+      return input ? input.toString().toUpperCase() : '';
     }
 
     // capitalize words in the input centence
@@ -26,12 +31,12 @@ package liquid {
     }
 
     public static function escape(input:*):* {
-      //CGI.escapeHTML(input:*) rescue input
-      return escape(input);
+      return input.toString().replace(/[&\"<>]/g, function():String { return TableForEscapeHTML[arguments[0]]; });
     }
 
     public static function escape_once(input:*):* {
-      //ActionView::Helpers::TagHelper.escape_once(input:*) rescue input
+      // TODO Do whatever ActiveSupport::Multibyte.clean does
+      return input.toString().replace(/[\"><]|&(?!([a-zA-Z]+|(#\d+));)/g, function():String { return HTMLEscape[arguments[0]]; });
     }
 
     public static function h(input:*): * { return escape(input); }
@@ -46,19 +51,19 @@ package liquid {
 
     public static function truncatewords(input:*, words:int = 15, truncateString:String = "..."):* {
       if (!input) return null;
-      var wordlist:Array = input.toString().split();
+      var wordlist:Array = input.toString().split(' ');
       var l:int = words - 1;
       if (l < 0) l = 0;
-      return (wordlist.length > l) ? wordlist.slice(0, l).join(' ') + truncateString : input;
+      return (wordlist.length > l) ? wordlist.slice(0, l+1).join(' ') + truncateString : input;
     }
 
     public static function strip_html(input:*):* {
-      return input.toString().replace(/<script.*?<\/script>/g, '').replace(/<.*?>/g, '');
+      return input ? input.toString().replace(/<script.*?<\/script>/g, '').replace(/<.*?>/g, '') : '';
     }
 
     // Remove all newlines from the string
     public static function strip_newlines(input:*):* {
-      return input.toString().replace(/\n/, '');
+      return input.toString().replace(/\n/g, '');
     }
 
     // Join elements of the array with certain character between them
@@ -72,10 +77,8 @@ package liquid {
       var ary:Array = Liquid.flatten([input]);
       if (!property) {
         return ary.sort();
-      //elsif ary.first.respond_to?('[]') and !ary.first[property].null?
       } else if (property in Liquid.first(ary) && Liquid.first(ary)[property]) {
-        // FIXME Implement
-        //ary.sort {|a,b| a[property] <=> b[property] }
+        return ary.sortOn(property);
       //elsif ary.first.respond_to?(property)
       } else if (property in Liquid.first(ary)) {
         // FIXME Implement
@@ -98,22 +101,24 @@ package liquid {
 
     // Replace occurrences of a string with another
     public static function replace(input:*, string:String, replacement:String = ''):* {
-      return input.toString().replace(string, replacement);
+      // Use split/join cause we don't want to turn '.' into a regexp
+      return input.toString().split(string).join(replacement);
     }
 
     // Replace the first occurrences of a string with another
     public static function replace_first(input:*, string:String, replacement:String = ''):* {
-      return input.toString().sub(string, replacement);
+      return input.toString().replace(string, replacement);
     }
 
     // remove a substring
     public static function remove(input:*, string:String):* {
-      return input.toString().replace(string, '');
+      // Use split/join cause we don't want to turn '.' into a regexp
+      return input.toString().split(string).join('');
     }
 
     // remove the first occurrences of a substring
     public static function remove_first(input:*, string:String):* {
-      return input.toString().sub(string, '');
+      return input.toString().replace(string, '');
     }
 
     // add one string to another
@@ -128,7 +133,7 @@ package liquid {
 
     // Add <br /> tags in front of all newlines in input string
     public static function newline_to_br(input:*):* {
-      return input.toString().replace(/\n/, "<br />\n");
+      return input.toString().replace(/\n/g, "<br />\n");
     }
 
     /**
@@ -208,29 +213,42 @@ package liquid {
 
     // addition
     public static function plus(input:*, operand:*):* {
-      return toNumber(input) + toNumber(operand);
+      var a:* = toNumber(input);
+      var b:* = toNumber(operand);
+      return a + b;
     }
 
     // subtraction
     public static function minus(input:*, operand:*):* {
-      return toNumber(input) - toNumber(operand);
+      var a:* = toNumber(input);
+      var b:* = toNumber(operand);
+      return a - b;
     }
 
     // multiplication
     public static function times(input:*, operand:*):* {
-      return toNumber(input) * toNumber(operand);
+      var a:* = toNumber(input);
+      var b:* = toNumber(operand);
+      return a * b;
     }
 
     // division
     public static function divided_by(input:*, operand:*):* {
-      return toNumber(input) / toNumber(operand);
+      var a:* = toNumber(input);
+      var b:* = toNumber(operand);
+      var n:Number = (a is int && b is int) ? Math.floor(a/b) : a/b;
+      if (!isFinite(n)) throw new liquid.errors.LiquidError("divided by 0");
+      return n;
     }
 
     private static function toNumber(obj:*):* {
       if (obj is Number) {
         return obj;
       } else if (obj is String) {
-        return (/^\d+\.\d+$/.test(Liquid.trim(obj))) ? parseFloat(obj) : parseInt(obj);
+        var isFloat:Boolean = /^\d+\.\d+$/.test(Liquid.trim(obj));
+        // FIXME parseFloat('2.0') returns type int, when we want type float
+        var n:Number = isFloat ? parseFloat(obj) : parseInt(obj);
+        return isNaN(n) ? 0 : n;
       } else {
         return 0;
       }

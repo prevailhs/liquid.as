@@ -41,11 +41,26 @@ package support.phs.asserts {
      * objects in the same order. If the arrays are not equal by this
      * definition an AssertionFailedError is thrown with the given message.
      * If the arrays contain arrays the same logic is recursed into those arrays.
+     *
+     * TODO Obsolete, remove
      */
     static public function assertEqualsNestedArrays(...args:Array):void {
+      assertEqualsNested.apply(support.phs.asserts.Assert, args);
+    }
+
+    /**
+     * Asserts that two objects are the same, handling Arrays, Objects and 
+     * other types.
+     * For an Array, they are verified to be the same length and all items are 
+     * compared recursively.
+     * For an Object, all the property names are extracted, they are verified 
+     * to be the same, and all values are compared recursively.
+     * For any other item they are verified to be equal.
+     */
+    static public function assertEqualsNested(...args:Array):void {
       var message:String;
-      var expected:Array;
-      var actual:Array;
+      var expected:*;
+      var actual:*;
 
       if(args.length == 2) {
         message = "";
@@ -67,26 +82,35 @@ package support.phs.asserts {
       if ((expected == null && actual != null) || (expected != null && actual == null)) {
         failNotEquals(message, expected, actual);
       }
+      
       // from here on: expected != null && actual != null
-      if (expected.length != actual.length) {
+      if (getQualifiedClassName(expected) != getQualifiedClassName(actual)) {
         failNotEquals(message, expected, actual);
       }
-      for (var i : int = 0; i < expected.length; i++) {
-        var expectedIsArray:Boolean = expected[i] is Array;
-        var actualIsArray:Boolean = actual[i] is Array;
 
-        if (!expectedIsArray && !actualIsArray) {
-          assertEquals(expected[i], actual[i]);
+      // from here on: expected same type as actual
+      var i:int;
+      if (expected is Array) {
+        if (expected.length != actual.length) {
+          failNotEquals(message, expected, actual);
         }
-        if (expectedIsArray && !actualIsArray) {
-          failNotEquals(message, expected[i], actual[i]);
+        for (i = 0; i < expected.length; i++) {
+          assertEqualsNested(message, expected[i], actual[i]);
         }
-        if (!expectedIsArray && actualIsArray) {
-          failNotEquals(message, expected[i], actual[i]);
+      } else if (expected is Object) {
+        var expectedPropNames:Array = [];
+        var actualPropNames:Array = [];
+        var p:String;
+        for (p in expected) expectedPropNames.push(p);
+        for (p in actual) actualPropNames.push(p);
+
+        assertEqualsArrays(message, expectedPropNames, actualPropNames);
+
+        for (i = 0; i < expectedPropNames.length; i++) {
+          assertEqualsNested(message, expected[expectedPropNames[i]], actual[actualPropNames[i]]);
         }
-        if (expectedIsArray && actualIsArray) {
-          assertEqualsNestedArrays(expected[i], actual[i]);
-        }
+      } else {
+        assertEquals(message, expected, actual);
       }
     }
 
