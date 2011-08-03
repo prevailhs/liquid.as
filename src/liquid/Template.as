@@ -69,7 +69,8 @@ package liquid {
 
     public function Template() {
       if (!_tagsInitialized) {
-        //trace('Registering tags');
+        // TODO Want to do this globally but it breaks there, why?
+        trace('Registering tags');
         Template.registerTag('assign', liquid.tags.Assign);
         Template.registerTag('if', liquid.tags.If);
         Template.registerTag('unless', liquid.tags.Unless);

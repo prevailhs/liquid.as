@@ -110,6 +110,12 @@ package {
       return str.replace(Liquid.Trim, '');
     }
 
+    // TODO Belongs on String
+    public static function capitalize(str:String):String {
+      // TODO Consider if we want to trim left first
+      return str.replace(/^(\w)/, function(char:String, ... args):String { return char.toUpperCase(); });
+    }
+
     // TODO Belongs on String and Array
     public static function empty(strOrArr:*):Boolean {
       if (strOrArr is String) return !strOrArr || strOrArr.length == 0;
@@ -200,3 +206,17 @@ package {
 //      return this.match(new RegExp(patternString, "g"));
 //  }
 }
+
+  // TODO Why can't I register tags here, it causes wierd class issues
+  //trace('Registering tags');
+  //liquid.Template.registerTag('assign', liquid.tags.Assign);
+  //liquid.Template.registerTag('if', liquid.tags.If);
+  //liquid.Template.registerTag('unless', liquid.tags.Unless);
+  //liquid.Template.registerTag('for', liquid.tags.For);
+  //liquid.Template.registerTag('capture', liquid.tags.Capture);
+  //liquid.Template.registerTag('ifchanged', liquid.tags.Ifchanged);
+  //liquid.Template.registerTag('comment', liquid.tags.Comment);
+  //liquid.Template.registerTag('cycle', liquid.tags.Cycle);
+  //liquid.Template.registerTag('case', liquid.tags.Case);
+  trace('Registering filters');
+  liquid.Template.registerFilter(liquid.StandardFilters);

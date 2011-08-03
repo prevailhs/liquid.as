@@ -24,7 +24,8 @@ package liquid {
 
     public static function globalFilter(filter:*):void {
       if (!(filter is Object)) throw new liquid.errors.ArgumentError("Passed filter is not a module");
-      _filters[filter.name] = filter;
+      var name:String = ('name' in filter) ? filter.name : getQualifiedClassName(filter);
+      _filters[name] = filter;
     }
 
     public static function create(context:Context):Strainer {

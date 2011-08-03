@@ -1,106 +1,136 @@
-require 'test_helper'
+package liquid  {
 
-module MoneyFilter
-  def money(input)
-    sprintf(' %d$ ', input)
-  end
+  import asunit.asserts.*;
+  import asunit.framework.IAsync;
+  import flash.display.Sprite;
 
-  def money_with_underscore(input)
-    sprintf(' %d$ ', input)
-  end
-end
+  import support.phs.asserts.*;
 
-module CanadianMoneyFilter
-  def money(input)
-    sprintf(' %d$ CAD ', input)
-  end
-end
+  public class FilterTest {
 
-class FiltersTest < Test::Unit::TestCase
-  include Liquid
+    [Inject]
+    public var async:IAsync;
 
-  def setup
-    @context = Context.new
-  end
+    [Inject]
+    public var context:Sprite;
 
-  def test_local_filter
-    @context['var'] = 1000
-    @context.add_filters(MoneyFilter)
+    private var _context:Context;
 
-    assert_equal ' 1000$ ', Variable.new("var | money").render(@context)
-  end
+    [Before]
+    public function setUp():void {
+      _context = new Context();
+    }
 
-  def test_underscore_in_filter_name
-    @context['var'] = 1000
-    @context.add_filters(MoneyFilter)
-    assert_equal ' 1000$ ', Variable.new("var | money_with_underscore").render(@context)
-  end
+    [After]
+    public function tearDown():void {
+      _context = null;
+    }
 
-  def test_second_filter_overwrites_first
-    @context['var'] = 1000
-    @context.add_filters(MoneyFilter)
-    @context.add_filters(CanadianMoneyFilter)
+    [Test]
+    public function shouldTestLocalFilter():void {
+      _context.setItem('var', 1000);
+      _context.addFilters(MoneyFilter);
 
-    assert_equal ' 1000$ CAD ', Variable.new("var | money").render(@context)
-  end
+      assertEquals(' 1000$ ', new Variable("var | money").render(_context));
+    }
 
-  def test_size
-    @context['var'] = 'abcd'
-    @context.add_filters(MoneyFilter)
+    [Test]
+    public function shouldTestUnderscoreInFilterName():void {
+      _context.setItem('var', 1000);
+      _context.addFilters(MoneyFilter);
+      assertEquals(' 1000$ ', new Variable("var | money_with_underscore").render(_context));
+    }
 
-    assert_equal 4, Variable.new("var | size").render(@context)
-  end
+    [Test]
+    public function shouldTestSecondFilterOverwritesFirst():void {
+      _context.setItem('var', 1000);
+      _context.addFilters(MoneyFilter);
+      _context.addFilters(CanadianMoneyFilter);
 
-  def test_join
-    @context['var'] = [1,2,3,4]
+      assertEquals(' 1000$ CAD ', new Variable("var | money").render(_context));
+    }
 
-    assert_equal "1 2 3 4", Variable.new("var | join").render(@context)
-  end
+    [Test]
+    public function shouldTestSize():void {
+      _context.setItem('var', 'abcd');
+      _context.addFilters(MoneyFilter);
 
-  def test_sort
-    @context['value'] = 3
-    @context['numbers'] = [2,1,4,3]
-    @context['words'] = ['expected', 'as', 'alphabetic']
-    @context['arrays'] = [['flattened'], ['are']]
+      assertEquals(4, new Variable("var | size").render(_context));
+    }
 
-    assert_equal [1,2,3,4], Variable.new("numbers | sort").render(@context)
-    assert_equal ['alphabetic', 'as', 'expected'], Variable.new("words | sort").render(@context)
-    assert_equal [3], Variable.new("value | sort").render(@context)
-    assert_equal ['are', 'flattened'], Variable.new("arrays | sort").render(@context)
-  end
+    [Test]
+    public function shouldTestJoin():void {
+      _context.setItem('var', [1, 2, 3, 4]);
 
-  def test_strip_html
-    @context['var'] = "<b>bla blub</a>"
+      assertEquals("1 2 3 4", new Variable("var | join").render(_context));
+    }
 
-    assert_equal "bla blub", Variable.new("var | strip_html").render(@context)
-  end
+    [Test]
+    public function shouldTestSort():void {
+      _context.setItem('value', 3);
+      _context.setItem('numbers', [2, 1, 4, 3]);
+      _context.setItem('words', ['expected', 'as', 'alphabetic']);
+      _context.setItem('arrays', [['flattened'], ['are']]);
 
-  def test_capitalize
-    @context['var'] = "blub"
+      assertEqualsNestedArrays([1, 2, 3, 4], new Variable("numbers | sort").render(_context));
+      assertEqualsNestedArrays(['alphabetic', 'as', 'expected'], new Variable("words | sort").render(_context));
+      assertEqualsNestedArrays([3], new Variable("value | sort").render(_context));
+      assertEqualsNestedArrays(['are', 'flattened'], new Variable("arrays | sort").render(_context));
+    }
 
-    assert_equal "Blub", Variable.new("var | capitalize").render(@context)
-  end
+    [Test]
+    public function shouldTestStripHtml():void {
+      _context.setItem('var', "<b>bla blub</a>");
 
-  def test_nonexistent_filter_is_ignored
-    @context['var'] = 1000
+      assertEquals("bla blub", new Variable("var | strip_html").render(_context));
+    }
 
-    assert_equal 1000, Variable.new("var | xyzzy").render(@context)
-  end
-end
+    [Test]
+    public function shouldTestCapitalize():void {
+      _context.setItem('var', "blub");
 
-class FiltersInTemplate < Test::Unit::TestCase
-  include Liquid
+      assertEquals("Blub", new Variable("var | capitalize").render(_context));
+    }
 
-  def test_local_global
-    Template.register_filter(MoneyFilter)
+    [Test]
+    public function shouldTestNonexistentFilterIsIgnored():void {
+      _context.setItem('var', 1000);
 
-    assert_equal " 1000$ ", Template.parse("{{1000 | money}}").render(nil, nil)
-    assert_equal " 1000$ CAD ", Template.parse("{{1000 | money}}").render(nil, :filters => CanadianMoneyFilter)
-    assert_equal " 1000$ CAD ", Template.parse("{{1000 | money}}").render(nil, :filters => [CanadianMoneyFilter])
-  end
+      assertEquals(1000, new Variable("var | xyzzy").render(_context));
+    }
 
-  def test_local_filter_with_deprecated_syntax
-    assert_equal " 1000$ CAD ", Template.parse("{{1000 | money}}").render(nil, CanadianMoneyFilter)
-    assert_equal " 1000$ CAD ", Template.parse("{{1000 | money}}").render(nil, [CanadianMoneyFilter])
-  end
-end # FiltersTest
+    [Test]
+    public function shouldTestLocalGlobal():void {
+      Template.registerFilter(MoneyFilter);
+
+      assertEquals(" 1000$ ", Template.parse("{{1000 | money}}").render(null, null));
+      assertEquals(" 1000$ CAD ", Template.parse("{{1000 | money}}").render(null, { "filters": CanadianMoneyFilter } ));
+      assertEquals(" 1000$ CAD ", Template.parse("{{1000 | money}}").render(null, { "filters": [CanadianMoneyFilter] } ));
+    }
+
+// TODO Consider if we want to support deprecated syntax
+/*
+    [Test]
+    public function shouldTestLocalFilterWithDeprecatedSyntax():void {
+      assertEquals(" 1000$ CAD ", Template.parse("{{1000 | money}}").render(null, CanadianMoneyFilter));
+      assertEquals(" 1000$ CAD ", Template.parse("{{1000 | money}}").render(null, [CanadianMoneyFilter]));
+    }
+*/
+  }
+}
+
+class MoneyFilter {
+  public static function money(input:*):String {
+    return ' ' + input + '$ ';
+  }
+
+  public static function money_with_underscore(input:*):String {
+    return ' ' + input + '$ ';
+  }
+};
+
+class CanadianMoneyFilter {
+  public static function money(input:*):String {
+    return ' ' + input + '$ CAD ';
+  }
+};
