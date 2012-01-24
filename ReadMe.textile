@@ -1,0 +1,47 @@
+h1. Liquid.as
+
+h2. General
+
+This will be a complete port of "Liquid":http://www.liquidmarkup.org/ from Ruby to ActionScript. Any template that Ruby Liquid can compile and render, should be compilable by Liquid.as too.
+
+This tries to be framework agnostic (i.e. doesn't use Flex, AIR, etc.).  This adds a little extra code as it implements its own helpers  like clear, first, last on Array; this tradeoff is made to allow the code to be portable across many systems.
+
+h2. Installation
+
+Until this is packaged for consumption by Sprouts projects as a gem the only path to installation is to follow the development steps (feel free to skip fork and just grab read only clone for compilation) and copy the resultant SWC into your project.
+
+h2. Differences
+
+h2. Known Issues
+
+h2. References:
+
+* "http://wiki.shopify.com/UsingLiquid":http://wiki.shopify.com/UsingLiquid
+* "http://projectsprouts.org/":http://projectsprouts.org/
+
+h2. Development
+
+Development uses the "Sprouts":http://projectsprouts.org/ ActionScript framework.  In order to install, follow these steps:
+
+# Fork the project on github.
+# Clone your repository locally:
+<pre>git clone git@github.com:prevailhs/liquid.as.git</pre>
+# Install bunder if not already installed:
+<pre>gem install bundler</pre>
+# Install gem bundle:
+<pre>bundle install</pre>
+# Run tests to verify they all pass
+<pre>bundle exec rake test</pre>
+# Build SWC file for testing within other applications:
+<pre>rake swc</pre>
+# Copy the swc from bin/Liquid.swc into your project for use.
+
+h3. Todo
+
+* Implement Ranges.
+* Support include statement.
+* Cleanup remaining tests.
+* Verify TODO items to ensure we aren't breaking items accidently.
+* Add performance tests to make sure AS tradeoffs don't cause issues.
+* Package into a gem that can be consumed by other Sprouts projects.
+* Update to latest Flex compiler.
