@@ -72,5 +72,5 @@ end
 
 ##############################
 # DEFAULT
-task :default => :run
+task :default => :swc
 

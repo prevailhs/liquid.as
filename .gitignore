@@ -1,5 +1,6 @@
-# Ignore generated SWF files in bin
+# Ignore generated SWF and SWC files in bin
 bin/*.swf
+bin/*.swc
 
 # Ignore as unit's copied SWC
 lib/asunit4/AsUnit-4.2.3.pre.swc
